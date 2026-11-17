@@ -16,6 +16,7 @@ if(HAVE_IPO)
 endif()
 add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 add_compile_options(-fwrapv -fno-strict-aliasing -ffp-contract=off -fmerge-all-constants -ffunction-sections -fdata-sections)
+add_compile_options("-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=.")
 add_link_options(-static -s -Wl,--gc-sections,--stack,8388608,--no-insert-timestamp)
 
 file(GLOB JAVA_CORE CONFIGURE_DEPENDS third_party/cubiomes_java/*.c)

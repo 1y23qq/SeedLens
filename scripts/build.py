@@ -43,6 +43,7 @@ def compile_group(name, files, force_include=None, extra=()):
             continue
         args = [tool('gcc' if source.suffix == '.c' else 'g++'), '-c', '-O2', '-fmerge-all-constants', '-ffunction-sections', '-fdata-sections', '-fwrapv', '-fno-strict-aliasing', '-ffp-contract=off', '-DNOMINMAX', '-DWIN32_LEAN_AND_MEAN', '-DUNICODE', '-D_UNICODE', '-D_CRT_SECURE_NO_WARNINGS']
         args += ['-std=gnu11'] if source.suffix == '.c' else ['-std=c++20', '-fno-rtti', '-Wall', '-Wextra']
+        args += [f'-ffile-prefix-map={ROOT}=.', f'-ffile-prefix-map={ROOT.as_posix()}=.']
         args += [f'-I{ROOT / p}' for p in ('src', 'third_party/imgui', 'third_party/imgui/backends')]
         if force_include:
             args += ['-include', force_include]
