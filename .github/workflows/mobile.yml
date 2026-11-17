@@ -13,7 +13,7 @@ on:
         description: Simulator host
         type: choice
         default: macos-15
-        options: [macos-15, macos-15-intel]
+        options: [macos-15, macos-15-intel, macos-26]
       simulator_artifact_run:
         description: Optional simulator-app artifact run to reuse
         type: string
