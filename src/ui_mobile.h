@@ -40,7 +40,10 @@ void mobile_topbar(float width){
     ImGui::SetCursorPos({12*u,8*u});
     if(focus_seed){ImGui::SetKeyboardFocusHere();focus_seed=false;}
     ImGui::SetNextItemWidth(horizontal?width-516*u:width-124*u);
+    bool invalid_seed=!error.empty();
+    if(invalid_seed)ImGui::PushStyleColor(ImGuiCol_Border,IM_COL32(219,117,105,255));
     if(ImGui::InputTextWithHint("##mobile_seed",t("シード","Seed"),seed_input,sizeof(seed_input),ImGuiInputTextFlags_EnterReturnsTrue))apply_seed();
+    if(invalid_seed)ImGui::PopStyleColor();
     ImGui::SameLine(0,8*u);
     if(icon_button("##mobile_apply","arrow-right",t("適用","Apply"),44*u))apply_seed();
     ImGui::SameLine(0,8*u);

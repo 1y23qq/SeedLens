@@ -243,6 +243,7 @@ struct App::Impl {
         std::string message;
         if (!parse_seed(seed_input, seed, message)) {
             error = message;
+            if(platform.touch)tell(message);
             return;
         }
         s.world.seed = seed;
@@ -1237,10 +1238,13 @@ struct App::Impl {
         if (!png&&!toast.empty() && ImGui::GetTime() - toast_time < 4) {
             ImGui::SetNextWindowPos({map_pos.x + map_size.x / 2, header_height()+16*u}, ImGuiCond_Always, {0.5f, 0});
             ImGui::SetNextWindowBgAlpha(0.98f);
+            if(platform.touch)ImGui::SetNextWindowSize({std::min(display.x-24*u,380*u),0});
             ImGui::Begin("##notification", nullptr,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                              ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+            ImGui::PushTextWrapPos();
             ImGui::TextColored(color4(accent), "%s", toast.c_str());
+            ImGui::PopTextWrapPos();
             ImGui::End();
         }
         if (ImGui::GetTime() - last_save > 10) {
