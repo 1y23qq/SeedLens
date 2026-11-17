@@ -108,7 +108,7 @@ struct MobileHost {
         }else{
             fingers.erase(f.fingerID);
         }
-        if(fingers.size()==2){
+        if(fingers.size()==2&&fingers.begin()->second.map&&std::next(fingers.begin())->second.map){
             auto first=fingers.begin(),second=std::next(first);
             float dx=second->second.x-first->second.x,dy=second->second.y-first->second.y;
             float distance=std::hypot(dx,dy),cx=(first->second.x+second->second.x)/2,cy=(first->second.y+second->second.y)/2;

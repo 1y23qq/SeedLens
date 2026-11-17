@@ -139,8 +139,8 @@ void sidebar(float height) {
     if (!sidebar_open)
         return;
     if(compact){
-        ImGui::SetNextWindowPos({12*u,header_height()+8*u});
-        ImGui::SetNextWindowSize({std::min(340*u,ImGui::GetIO().DisplaySize.x-24*u),std::max(160*u,height-header_height()-footer_height()-16*u)});
+        ImGui::SetNextWindowPos({12*u,12*u});
+        ImGui::SetNextWindowSize({std::min(340*u,ImGui::GetIO().DisplaySize.x-24*u),std::max(160*u,height-24*u)});
         ImGui::Begin("##mobile_features",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoMove);
         ImGui::TextUnformatted(t("表示項目","Features"));ImGui::SameLine(ImGui::GetWindowWidth()-52*u);
         if(icon_button("##close_features","x",t("閉じる","Close"),32*u))sidebar_open=false;
@@ -447,9 +447,10 @@ void map(float width, float height) {
     auto* draw = ImGui::GetWindowDrawList();
     ImVec2 mouse = ImGui::GetIO().MousePos;
     float right = map_pos.x + map_size.x, bottom = map_pos.y + map_size.y;
+    bool top_tools=map_size.y>=250*u,bottom_tools=map_size.y>=150*u;
     bool over_tools = mouse.x >= right - 51 * u && mouse.x <= right - 10 * u &&
-                      ((mouse.y >= map_pos.y + 10 * u && mouse.y <= map_pos.y + 85 * u) ||
-                       (mouse.y >= bottom - 132 * u && mouse.y <= bottom - 19 * u));
+                      ((top_tools&&mouse.y >= map_pos.y + 10 * u && mouse.y <= map_pos.y + 85 * u) ||
+                       (bottom_tools&&mouse.y >= bottom - 132 * u && mouse.y <= bottom - 19 * u));
     bool hovered = false, active = false, was_dragging = dragging;
     if (over_tools && !dragging)
         ImGui::Dummy(map_size);
@@ -492,13 +493,16 @@ void map(float width, float height) {
     }
     request_map();
     float tx = map_pos.x + map_size.x - 47 * u;
+    if(top_tools){
     ImGui::SetCursorScreenPos({tx, map_pos.y + 13 * u});
     if (icon_button("##mapfind", "search", t("場所を探す  Ctrl+F", "Find locations  Ctrl+F"), 32 * u))
         find_open = true;
     ImGui::SetCursorScreenPos({tx, map_pos.y + 51 * u});
     if (icon_button("##expandmap", "maximize", t("地図を広く表示", "Expand map"), 32 * u, !sidebar_open))
         sidebar_open = !sidebar_open;
+    }
     float by = map_pos.y + map_size.y;
+    if(bottom_tools){
     ImGui::SetCursorScreenPos({tx, by - 129 * u});
     if (icon_button("##zoomplus", "plus", t("拡大  +", "Zoom in  +"), 32 * u))
         zoom(0.75, {map_size.x / 2, map_size.y / 2});
@@ -508,6 +512,7 @@ void map(float width, float height) {
     ImGui::SetCursorScreenPos({tx, by - 53 * u});
     if (icon_button("##origin", "locate-fixed", t("原点へ  Home", "Origin  Home"), 32 * u))
         center(0, 0);
+    }
     double desired = s.blocks_per_pixel * 110 * u, power = std::pow(10, std::floor(std::log10(desired))),
            distance = power;
     for (double m : {1.0, 2.0, 5.0})

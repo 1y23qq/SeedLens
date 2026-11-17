@@ -38,3 +38,13 @@ Bedrock 26.30 / 26.40 / 26.60 implementations derive from preview versions. Exac
 The app displays biome slices, not a full block or height map. Temples, mansions, spawn and decorations can depend on terrain conditions that are approximated by the libraries. Existing modified chunks, mods and datapacks are not simulated.
 
 Unsupported categories are exposed in the in-app coverage list: Overworld fossils, Java monster rooms and Bedrock Nether fossils. Java ravines and lava lakes are not exposed as layers. Bedrock monster room terrain searches are intentionally restricted to radius 128.
+
+## Mobile verification
+
+Android was checked in an isolated AOSP API 35 x86-64 emulator. The signed release application passed the same 2,622 native assertions (35 Java and 28 Bedrock profiles, all dimensions). The manifest does not request Internet permission. Phone portrait, phone landscape and a 1280-dp tablet layout were operated and captured. Native on-screen text input resizes the usable viewport so that coordinate fields stay visible. Structure search returned results and a single result tap centered the map. One-finger panning, long-press point inspection and PNG export through the Android system document picker were checked; the saved PNG was pulled back and decoded.
+
+A separate test-only instrumentation APK injects a real two-finger MotionEvent sequence into the native map. It then backgrounds the application and checks the saved scale. The tested pinch reduced blocks per pixel from 2.259624 to 1.027101. The test harness must be signed with the same local key as the installed application:
+
+    python tests/android_touch.py --serial <emulator-serial> --server-port <adb-server-port>
+
+This does not establish performance or compatibility on every physical Android device. The ARM64 and ARMv7 libraries are cross-compiled with the Android NDK; interactive emulator checks use the x86-64 build of the same C++ source. ARM64 and x86-64 ELF load segments were checked at 16-KiB alignment, including the official SDL3 library. The ARMv7 SDL3 binary uses 4-KiB alignment.

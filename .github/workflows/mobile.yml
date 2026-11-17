@@ -5,9 +5,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   ios:
     runs-on: macos-15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Build iPhone and iPad application
@@ -16,6 +20,8 @@ jobs:
             -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
             -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
           cmake --build build-mobile/ios --config Release --target SeedLens --parallel 3
+          file build-mobile/ios/Release-iphoneos/SeedLens.app/SeedLens
+          otool -L build-mobile/ios/Release-iphoneos/SeedLens.app/SeedLens
           mkdir -p dist/Payload
           cp -R build-mobile/ios/Release-iphoneos/SeedLens.app dist/Payload/
           cd dist && zip -qr SeedLens-unsigned.ipa Payload && rm -rf Payload
@@ -38,6 +44,21 @@ jobs:
           xcrun simctl launch "$DEVICE" com.seedlens.app
           sleep 10
           xcrun simctl io "$DEVICE" screenshot dist/ios-phone.png
+          for SCENE in nether end; do
+            xcrun simctl terminate "$DEVICE" com.seedlens.app
+            xcrun simctl launch "$DEVICE" com.seedlens.app --scene "$SCENE"
+            sleep 5
+            xcrun simctl io "$DEVICE" screenshot "dist/ios-$SCENE.png"
+          done
+          cp "$REPORT" dist/ios-core-report.json
+          xcrun simctl shutdown "$DEVICE"
+          TABLET=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(v["udid"] for a in d["devices"].values() for v in a if v["name"].startswith("iPad")))')
+          xcrun simctl boot "$TABLET"
+          xcrun simctl bootstatus "$TABLET" -b
+          xcrun simctl install "$TABLET" build-mobile/ios-sim/Release-iphonesimulator/SeedLens.app
+          xcrun simctl launch "$TABLET" com.seedlens.app
+          sleep 10
+          xcrun simctl io "$TABLET" screenshot dist/ios-tablet.png
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -45,3 +66,4 @@ jobs:
           path: |
             dist/*.ipa
             dist/*.png
+            dist/*-report.json

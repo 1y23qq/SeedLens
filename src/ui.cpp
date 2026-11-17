@@ -646,7 +646,7 @@ struct App::Impl {
         }
         if(pending_context){
             auto [x,z]=world_at(*pending_context);SLMarker m{};m.kind=-2;m.x=x;m.z=z;m.y=s.world.y;m.biome=probe->biome(x,s.world.y,z);
-            selected=m;pending_context.reset();ImGui::OpenPopup("map_context");
+            selected=m;pending_context.reset();if(!platform.touch)ImGui::OpenPopup("map_context");
         }
         if (hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
             auto [x, z] = world_at(ImGui::GetIO().MousePos);
@@ -1277,6 +1277,10 @@ void App::notification(std::string message) {
 }
 bool App::map_input_at(float x,float y) const{
     const auto& p=*impl_;
+    if(p.selected){
+        auto* inspector=ImGui::FindWindowByName("##inspector");
+        if(inspector&&inspector->WasActive&&inspector->Rect().Contains({x,y}))return false;
+    }
     return !(p.compact&&p.sidebar_open)&&ImGui::GetCurrentContext()->OpenPopupStack.empty()&&
         x>=p.map_pos.x&&y>=p.map_pos.y&&x<p.map_pos.x+p.map_size.x&&y<p.map_pos.y+p.map_size.y;
 }
