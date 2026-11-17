@@ -1,0 +1,140 @@
+{
+  "minecraft": "26.3",
+  "client_sha1": "e877b6a07acd633fb3bb475002175cec036e7b87",
+  "client_url": "https://piston-data.mojang.com/v1/objects/e877b6a07acd633fb3bb475002175cec036e7b87/client.jar",
+  "copyright": "Minecraft textures \u00a9 Mojang AB / Microsoft. Not covered by the SeedLens MIT license.",
+  "sources": {
+    "entity/villager/villager": {
+      "path": "assets/minecraft/textures/entity/villager/villager.png",
+      "sha256": "ac6a775858c742fecd5dd18e8f99f308701650e770d30da97773daab92b6f5bd"
+    },
+    "block/chiseled_sandstone": {
+      "path": "assets/minecraft/textures/block/chiseled_sandstone.png",
+      "sha256": "b83985fce4ec27112eddeb8759145198f77014cc7eceb81daa4390a9e1a5aafa"
+    },
+    "block/mossy_cobblestone": {
+      "path": "assets/minecraft/textures/block/mossy_cobblestone.png",
+      "sha256": "68ceb02b0c41e799677320ff46c2c5b6d71450142a3c948e68641a6da66bc469"
+    },
+    "entity/witch/witch": {
+      "path": "assets/minecraft/textures/entity/witch/witch.png",
+      "sha256": "c22f075ec24a49d3b2f108432c098d7d4b52e266b1b6da6aa5de6cda5cf01af4"
+    },
+    "block/furnace_front": {
+      "path": "assets/minecraft/textures/block/furnace_front.png",
+      "sha256": "aae808f71f1bddf4a25592f7dd3d7f6e9b3adaa739502170766424f4eb6bf9c5"
+    },
+    "block/prismarine_bricks": {
+      "path": "assets/minecraft/textures/block/prismarine_bricks.png",
+      "sha256": "337aaa7dc951acd1cb10ade9675d3c85a0a190d462ba2a484c19be5060a5eb56"
+    },
+    "entity/illager/evoker": {
+      "path": "assets/minecraft/textures/entity/illager/evoker.png",
+      "sha256": "34c0b8e60888982bbfb187ebd99e1b0ae70252235c6246ca767ff450c4211435"
+    },
+    "entity/illager/pillager": {
+      "path": "assets/minecraft/textures/entity/illager/pillager.png",
+      "sha256": "3ab515ec1aff8db061bb887d80b4757e673b66e22259be3643ea252da83bb963"
+    },
+    "block/nether_portal": {
+      "path": "assets/minecraft/textures/block/nether_portal.png",
+      "sha256": "83f7f02814cf0dcf2b7ddd7be5c4ef03ab50e279bbca4acdcab5cd1d11a694f7"
+    },
+    "item/soul_lantern": {
+      "path": "assets/minecraft/textures/item/soul_lantern.png",
+      "sha256": "2682042ace8c62c4d25ce8fcc3fd0d10d6e6fd31f79bff9ac70469bf81b82393"
+    },
+    "entity/chest/normal": {
+      "path": "assets/minecraft/textures/entity/chest/normal.png",
+      "sha256": "ab478534503430192b224ea4d5e1e87b6820198925bb7a7b4bd32f2a8a55c801"
+    },
+    "block/rail": {
+      "path": "assets/minecraft/textures/block/rail.png",
+      "sha256": "db73ebf85b0f5090c232de60059b761a9a62fa8a9bb2084d121f9d08b0bde5a7"
+    },
+    "block/end_portal_frame_top": {
+      "path": "assets/minecraft/textures/block/end_portal_frame_top.png",
+      "sha256": "9f2b9eeee9b8b6d4cf01e3c8ab60f52ccd492886e6832cd8ff5628703f31b134"
+    },
+    "item/oak_boat": {
+      "path": "assets/minecraft/textures/item/oak_boat.png",
+      "sha256": "7ea5445b3ae6af56f82abeb89d5fc6a462ab8eee711a2ae1b4ec272ff54544b6"
+    },
+    "block/chiseled_stone_bricks": {
+      "path": "assets/minecraft/textures/block/chiseled_stone_bricks.png",
+      "sha256": "fbd59c309a861f63cfbb1f0f2348316d16bafa3bdd1ef81550357e1b5778df8f"
+    },
+    "item/brush": {
+      "path": "assets/minecraft/textures/item/brush.png",
+      "sha256": "5142d5d3ce600efe359a1b3f2f80f3bd9505e7dc7b31cda4157ed69a0b01adc2"
+    },
+    "block/trial_spawner_side_active": {
+      "path": "assets/minecraft/textures/block/trial_spawner_side_active.png",
+      "sha256": "f7631b4d650c7f159cd6b0f3c9fff352caa7fbf6f05b1c70a1a20ee7cf4f354e"
+    },
+    "item/campfire": {
+      "path": "assets/minecraft/textures/item/campfire.png",
+      "sha256": "9283c0e731db15be1095278b75a5d68b08bb39cd22d86ed02ab425219622b986"
+    },
+    "entity/blaze/blaze": {
+      "path": "assets/minecraft/textures/entity/blaze/blaze.png",
+      "sha256": "ed70f0215135bb836379e068b3b4fe1f2f792d5c6b94f1a4cd48b4f91015eee5"
+    },
+    "entity/piglin/piglin": {
+      "path": "assets/minecraft/textures/entity/piglin/piglin.png",
+      "sha256": "6ba539fa4ae905fd95f95984aec2845992fa92c748765ac9da0c01800d8ce69f"
+    },
+    "item/bone": {
+      "path": "assets/minecraft/textures/item/bone.png",
+      "sha256": "acc1fb127f3f1139e51e748ee8b259eebac8f1ad369b33bd9643246ee96ae62d"
+    },
+    "block/purpur_block": {
+      "path": "assets/minecraft/textures/block/purpur_block.png",
+      "sha256": "3e6a2fe3f74a47f110e7870ad2a55814129bd0c1908391c4e5465345a8402dbd"
+    },
+    "item/ender_pearl": {
+      "path": "assets/minecraft/textures/item/ender_pearl.png",
+      "sha256": "ff40529856c82317ce24cec4ba384971f56aec0f8ce3756e059d2eb17f3b310a"
+    },
+    "block/end_stone": {
+      "path": "assets/minecraft/textures/block/end_stone.png",
+      "sha256": "1fd05dbb86e8f49c518cabb82f706b71db6e94f03d9fd2b18f053f8e7a01e498"
+    },
+    "item/water_bucket": {
+      "path": "assets/minecraft/textures/item/water_bucket.png",
+      "sha256": "7da2d23c69392bda3c9dd617b7942035bbd03ea348a0ff05ad461a51854f68af"
+    },
+    "block/amethyst_cluster": {
+      "path": "assets/minecraft/textures/block/amethyst_cluster.png",
+      "sha256": "1dc3ee2f06ed48824d698bfa06de38e2f1d12dedd5f5f5e2956abc8e620e6918"
+    },
+    "block/spawner": {
+      "path": "assets/minecraft/textures/block/spawner.png",
+      "sha256": "e228d0554328a65f62d2f11054e9b9307a09616ab8b31b70e2483e77bb68b0b4"
+    },
+    "block/stone": {
+      "path": "assets/minecraft/textures/block/stone.png",
+      "sha256": "b5e10adc72442bfb257ce7ba0b9bbe36475a0c8cdfec89b80dc9517203ff3e9f"
+    },
+    "block/lava_still": {
+      "path": "assets/minecraft/textures/block/lava_still.png",
+      "sha256": "9d28ac5d4ac1a9965552e5c8b5e1229a38a5f7216c0250b35d2400dee1f1b8be"
+    },
+    "entity/zombie_villager/zombie_villager": {
+      "path": "assets/minecraft/textures/entity/zombie_villager/zombie_villager.png",
+      "sha256": "5a6a0f6f3ebecdbdf25de91714db9de85f9c4cc1946aaf593f5b0acf555f6ee0"
+    },
+    "item/elytra": {
+      "path": "assets/minecraft/textures/item/elytra.png",
+      "sha256": "7a83137eea9fd1e1eb75906cb573a277a90cc0796e2aa2a04d0605abc5b21717"
+    },
+    "item/compass_16": {
+      "path": "assets/minecraft/textures/item/compass_16.png",
+      "sha256": "f0c1a41cc50cf5e2a3e2bc0477ab063c682cc8498e41ab0b643b4719e8d80ea8"
+    },
+    "item/slime_ball": {
+      "path": "assets/minecraft/textures/item/slime_ball.png",
+      "sha256": "b6dc3e58310ed184499862f67ed6462cd469c9e3d4655b01758474bd77a478b1"
+    }
+  }
+}

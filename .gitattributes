@@ -1,0 +1,18 @@
+* text=auto
+*.cpp text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.cmd text eol=crlf
+*.ico binary
+*.png binary
+*.ttf binary
+*.bin binary
+third_party/** linguist-vendored
+src/lucide_icons.h linguist-generated
+src/biome_palette.h linguist-generated
+src/bedrock_symbols.h linguist-generated
+src/minecraft_icons.h linguist-generated

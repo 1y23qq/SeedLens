@@ -1,0 +1,37 @@
+name: Windows
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Prepare compiler
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .cache | Out-Null
+          curl.exe -L --fail --silent --show-error https://github.com/skeeto/w64devkit/releases/download/v2.11.0/w64devkit-x64-2.11.0.7z.exe -o .cache/toolchain.7z.exe
+          if ((Get-FileHash .cache/toolchain.7z.exe -Algorithm SHA256).Hash -ne '54C2BB9962E8A30C8270E34C5EFC3D5FEE579F53087FA7D435B95FBBA2AF7B2B') { throw 'Compiler archive checksum mismatch' }
+          & .cache/toolchain.7z.exe -y '-o.cache/toolchain'
+          if ($LASTEXITCODE -ne 0) { throw 'Compiler extraction failed' }
+      - name: Build and validate
+        shell: pwsh
+        run: |
+          python scripts/build.py --upstream-tests
+          if ($LASTEXITCODE -ne 0) { throw 'Build or core tests failed' }
+          python tests/integration.py
+          if ($LASTEXITCODE -ne 0) { throw 'Executable integration tests failed' }
+          $hash = (Get-FileHash build-native/SeedLens.exe -Algorithm SHA256).Hash.ToLower()
+          "$hash  SeedLens.exe" | Set-Content -Encoding ascii build-native/SHA256SUMS.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: SeedLens-Windows-x64
+          path: |
+            build-native/SeedLens.exe
+            build-native/SHA256SUMS.txt
+            build-native/verification/report.json
