@@ -36,3 +36,5 @@ The IPA contains a real ARM64 iPhone/iPad app bundle. It is **unsigned** and can
 For the simulator, use iphonesimulator as CMAKE_OSX_SYSROOT and the host architecture as CMAKE_OSX_ARCHITECTURES. Launching with --self-test runs the same native core assertions as Windows and writes self-test.json under the application preference directory. The Mobile GitHub Actions workflow builds both a device IPA and simulator app, runs this check, and captures iPhone/iPad screenshots in all dimensions. The --export-smoke diagnostic flag captures a clean native map, writes a copy under Documents/Exports and opens the native share sheet after generation completes.
 
 The generation coverage and accuracy limitations are identical to the Windows application; see the main README.
+
+The final iOS Files/share-sheet flow is compiled but not fully runtime-verified. Hosted simulator installation and launch operations stalled during the final check. Earlier native engine checks, Retina rendering, all-dimension screenshots and PNG capture passed; physical installation and the updated share flow still need device verification.

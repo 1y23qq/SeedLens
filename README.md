@@ -6,6 +6,8 @@ Minecraft Java / Bedrock用の、オフラインで動くバイオーム・構�
 
 Windows版は約4.9MiBのexe一つ。Java、Python、WebView、追加DLL、ネット接続は不要です。Windows 10 / 11 x64、Android 8以降、iOS / iPadOS 15以降に対応します。Androidの通常APKはARM64版です。IPAは未署名のため、端末へのインストール前にAppleの証明書・プロビジョニングプロファイル等で再署名が必要です。
 
+iOS版は実機未検証です。更新後の保存・共有UIも、CIのシミュレーターが応答しないため最終確認未了です。詳しくは[検証記録](docs/VERIFICATION.md)を参照してください。
+
 ![SeedLens](docs/SeedLens.png)
 
 <p><img src="docs/SeedLens-Android.png" alt="Android" width="280"> <img src="docs/SeedLens-iPhone.png" alt="iPhone" width="280"></p>
