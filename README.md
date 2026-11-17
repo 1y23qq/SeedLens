@@ -1,6 +1,6 @@
 # SeedLens
 
-An offline biome and structure map for Minecraft Java and Bedrock on Windows, Android and iOS, written in c++.
+An offline biome and structure map for Minecraft Java and Bedrock on Windows, Android and iOS. Written in C++.
 
 **[Windows EXE](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens.exe)** · **[Android APK](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens.apk)** · **[iOS IPA (requires signing)](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens-unsigned.ipa)** · [Coverage and verification](docs/VERIFICATION.md)
 
