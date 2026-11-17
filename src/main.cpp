@@ -4,6 +4,7 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include <dwmapi.h>
+#include <d3d11.h>
 #include <shellapi.h>
 #include <algorithm>
 #include <chrono>
@@ -96,7 +97,7 @@ LRESULT WINAPI window_proc(HWND window, UINT msg, WPARAM wp, LPARAM lp) {
     }
     return DefWindowProcW(window, msg, wp, lp);
 }
-bool capture_map(const std::filesystem::path& path, RECT crop, std::string& error) {
+bool capture_map(const std::filesystem::path& path, seedlens::PixelRect crop, std::string& error) {
     ID3D11Texture2D *buffer = nullptr, *staging = nullptr;
     if (FAILED(swap_chain->GetBuffer(0, IID_PPV_ARGS(&buffer))))
         return false;
@@ -119,10 +120,10 @@ bool capture_map(const std::filesystem::path& path, RECT crop, std::string& erro
         staging->Release();
         return false;
     }
-    crop.left = std::clamp(crop.left, 0L, LONG(desc.Width) - 1);
-    crop.top = std::clamp(crop.top, 0L, LONG(desc.Height) - 1);
-    crop.right = std::clamp(crop.right, crop.left + 1, LONG(desc.Width));
-    crop.bottom = std::clamp(crop.bottom, crop.top + 1, LONG(desc.Height));
+    crop.left = std::clamp(crop.left, 0, int(desc.Width) - 1);
+    crop.top = std::clamp(crop.top, 0, int(desc.Height) - 1);
+    crop.right = std::clamp(crop.right, crop.left + 1, int(desc.Width));
+    crop.bottom = std::clamp(crop.bottom, crop.top + 1, int(desc.Height));
     int w = crop.right - crop.left, h = crop.bottom - crop.top;
     std::vector<uint32_t> pixels(size_t(w) * h);
     for (int y = 0; y < h; ++y)
@@ -448,7 +449,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         ShowWindow(window, SW_SHOWDEFAULT);
         UpdateWindow(window);
         {
-            seedlens::App app(window, device, std::move(session), path);
+            seedlens::App app(seedlens::make_windows_platform(window,device), std::move(session), path);
             bool done = false;
             float old_dpi = 0;
             while (!done) {

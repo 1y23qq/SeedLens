@@ -94,7 +94,7 @@ def main():
     imgui = [imgui_root / s for s in ['imgui.cpp', 'imgui_draw.cpp', 'imgui_tables.cpp', 'imgui_widgets.cpp', 'backends/imgui_impl_win32.cpp', 'backends/imgui_impl_dx11.cpp']]
     iobj = compile_group('imgui', imgui, extra=['-w', '-Os'])
     core = compile_group('core', [ROOT / 'src/engine.cpp', ROOT / 'src/persistence.cpp'])
-    ui = compile_group('app', [ROOT / 'src/main.cpp', ROOT / 'src/ui.cpp', ROOT / 'src/export.cpp'], extra=['-Os'])
+    ui = compile_group('app', [ROOT / 'src/main.cpp', ROOT / 'src/ui.cpp', ROOT / 'src/export.cpp', ROOT / 'src/platform_win32.cpp', ROOT / 'src/export_common.cpp'], extra=['-Os'])
     res = BUILD / 'app.o'
     run([tool('windres'), '-Iassets', '-i', ROOT / 'assets/app.rc', '-o', res])
     libs = [BUILD / 'java.a', BUILD / 'bedrock.a']

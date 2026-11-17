@@ -1,0 +1,47 @@
+name: Mobile
+on:
+  push:
+    branches: [mobile]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Build iPhone and iPad application
+        run: |
+          cmake -S mobile -B build-mobile/ios -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+          cmake --build build-mobile/ios --config Release --target SeedLens --parallel 3
+          mkdir -p dist/Payload
+          cp -R build-mobile/ios/Release-iphoneos/SeedLens.app dist/Payload/
+          cd dist && zip -qr SeedLens-unsigned.ipa Payload && rm -rf Payload
+      - name: Build iOS simulator application
+        run: |
+          cmake -S mobile -B build-mobile/ios-sim -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES="$(uname -m)" -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0
+          cmake --build build-mobile/ios-sim --config Release --target SeedLens --parallel 3
+      - name: Verify native engine and capture iPhone
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(v["udid"] for a in d["devices"].values() for v in a if v["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" build-mobile/ios-sim/Release-iphonesimulator/SeedLens.app
+          xcrun simctl launch --console "$DEVICE" com.seedlens.app --self-test
+          DATA=$(xcrun simctl get_app_container "$DEVICE" com.seedlens.app data)
+          REPORT=$(find "$DATA" -name self-test.json -print -quit)
+          python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d);assert d["ok"]' "$REPORT"
+          xcrun simctl launch "$DEVICE" com.seedlens.app
+          sleep 10
+          xcrun simctl io "$DEVICE" screenshot dist/ios-phone.png
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: SeedLens-iOS
+          path: |
+            dist/*.ipa
+            dist/*.png

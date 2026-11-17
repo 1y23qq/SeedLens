@@ -1,6 +1,8 @@
 #include "engine.h"
+#ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>
+#endif
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -9,6 +11,7 @@
 
 namespace seedlens {
 std::filesystem::path settings_path(bool portable) {
+#ifdef _WIN32
     if (portable) {
         wchar_t path[32768];
         DWORD n = GetModuleFileNameW(nullptr, path, 32768);
@@ -21,6 +24,11 @@ std::filesystem::path settings_path(bool portable) {
         return p / L"SeedLens" / L"session.ini";
     }
     return {};
+#else
+    (void)portable;
+    const char* home=std::getenv("HOME");
+    return home?std::filesystem::path(home)/".local/share/SeedLens/session.ini":std::filesystem::path("session.ini");
+#endif
 }
 static bool valid_world(World& w) {
     if (w.edition < 0 || w.edition > 1 || (w.dimension != -1 && w.dimension != 0 && w.dimension != 1))
@@ -88,7 +96,7 @@ bool save_session(const std::filesystem::path& path, const Session& s) {
     std::error_code ec;
     std::filesystem::create_directories(path.parent_path(), ec);
     auto temp = path;
-    temp += L".tmp";
+    temp += ".tmp";
     {
         std::ofstream file(temp, std::ios::binary | std::ios::trunc);
         if (!file)
@@ -108,6 +116,11 @@ bool save_session(const std::filesystem::path& path, const Session& s) {
         if (!file)
             return false;
     }
+#ifdef _WIN32
     return MoveFileExW(temp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    std::filesystem::rename(temp,path,ec);
+    return !ec;
+#endif
 }
 } // namespace seedlens

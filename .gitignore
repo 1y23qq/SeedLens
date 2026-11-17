@@ -7,3 +7,10 @@
 *.pdb
 *.ilk
 *.log
+*.jks
+*.keystore
+*.p12
+*.p8
+*.mobileprovision
+local.properties
+__pycache__/

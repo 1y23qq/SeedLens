@@ -1,29 +1,10 @@
 float sidebar_width() const {
-    return sidebar_open ? 252 * u : 0;
+    return sidebar_open&&!compact ? 252 * u : 0;
 }
 
-void load_game_sprites() {
-    std::vector<uint32_t> pixels;
-    int width = 0, height = 0;
-    if (!read_png_resource(300, pixels, width, height))
-        return;
-    D3D11_TEXTURE2D_DESC desc{};
-    desc.Width = UINT(width);
-    desc.Height = UINT(height);
-    desc.MipLevels = 1;
-    desc.ArraySize = 1;
-    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    desc.SampleDesc.Count = 1;
-    desc.Usage = D3D11_USAGE_IMMUTABLE;
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    D3D11_SUBRESOURCE_DATA data{};
-    data.pSysMem = pixels.data();
-    data.SysMemPitch = UINT(width * 4);
-    ID3D11Texture2D* texture = nullptr;
-    if (SUCCEEDED(device->CreateTexture2D(&desc, &data, &texture))) {
-        device->CreateShaderResourceView(texture, nullptr, &game_atlas);
-        texture->Release();
-    }
+void load_game_sprites(){
+    auto image=platform.image_resource(300);
+    if(!image.pixels.empty())game_atlas=platform.create_texture(image.pixels.data(),image.width,image.height);
 }
 
 void game_sprite(ImDrawList* draw, int kind, ImVec2 p, float size, unsigned flags = 0,
@@ -38,7 +19,7 @@ void game_sprite(ImDrawList* draw, int kind, ImVec2 p, float size, unsigned flag
     ImVec2 uv0{x / minecraft::width, y / minecraft::height};
     ImVec2 uv1{(x + minecraft::content) / minecraft::width, (y + minecraft::content) / minecraft::height};
     draw->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest, nullptr);
-    draw->AddImage(ImTextureRef(game_atlas), p, {p.x + size, p.y + size}, uv0, uv1,
+    draw->AddImage(ImTextureRef(ImTextureID(game_atlas)), p, {p.x + size, p.y + size}, uv0, uv1,
                    IM_COL32(255, 255, 255, int(255 * opacity)));
     draw->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 }
@@ -57,6 +38,7 @@ void go_to_inputs() {
 }
 
 void topbar(float width) {
+    if(compact){mobile_topbar(width);return;}
     auto* draw = ImGui::GetWindowDrawList();
     draw->AddRectFilled({0, 0}, {width, 56 * u}, panel);
     draw->AddLine({0, 55 * u}, {width, 55 * u}, line);
@@ -142,7 +124,7 @@ void topbar(float width) {
         help_open = true;
     if (ImGui::BeginPopup("exports")) {
         if (ImGui::MenuItem(t("地図をPNGで保存", "Save map as PNG"), "Ctrl+S")) {
-            auto path = save_dialog(window, L"png", L"SeedLens-" + wide(signed_seed(s.world.seed)) + L".png");
+            auto path = platform.choose_save( L"png", L"SeedLens-" + wide(signed_seed(s.world.seed)) + L".png");
             if (!path.empty())
                 png = path;
         }
@@ -156,11 +138,20 @@ void topbar(float width) {
 void sidebar(float height) {
     if (!sidebar_open)
         return;
+    if(compact){
+        ImGui::SetNextWindowPos({12*u,header_height()+8*u});
+        ImGui::SetNextWindowSize({std::min(340*u,ImGui::GetIO().DisplaySize.x-24*u),std::max(160*u,height-header_height()-footer_height()-16*u)});
+        ImGui::Begin("##mobile_features",nullptr,ImGuiWindowFlags_NoDecoration|ImGuiWindowFlags_NoSavedSettings|ImGuiWindowFlags_NoMove);
+        ImGui::TextUnformatted(t("表示項目","Features"));ImGui::SameLine(ImGui::GetWindowWidth()-52*u);
+        if(icon_button("##close_features","x",t("閉じる","Close"),32*u))sidebar_open=false;
+        ImGui::Separator();
+    }else{
     ImGui::SetCursorPos({0, 56 * u});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {12 * u, 12 * u});
     ImGui::BeginChild("sidebar", {252 * u, height - 122 * u}, ImGuiChildFlags_AlwaysUseWindowPadding,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
+    }
     float width = ImGui::GetContentRegionAvail().x;
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {7 * u, 6 * u});
     if (segment_button(t("構造物##layerstab", "Structures##layerstab"), {(width - 5 * u) / 2, 30 * u},
@@ -268,11 +259,11 @@ void sidebar(float height) {
         find_open = true;
         find_biome = layers_tab == 1;
     }
-    ImGui::EndChild();
+    if(compact)ImGui::End();else ImGui::EndChild();
 }
 
 void featurebar(float width) {
-    if (sidebar_open)
+    if (sidebar_open||compact)
         return;
     float left = sidebar_width();
     ImGui::SetCursorPos({left, 56 * u});
@@ -335,6 +326,7 @@ void draw_axes(ImDrawList* draw) {
 }
 
 void status(float width, float height) {
+    if(compact){mobile_status(width,height);return;}
     float top = height - 66 * u;
     auto* draw = ImGui::GetWindowDrawList();
     draw->AddRectFilled({0, top}, {width, height}, panel);
@@ -439,10 +431,10 @@ void status(float width, float height) {
 
 void map(float width, float height) {
     float left = sidebar_width() + 1 * u;
-    float top = (sidebar_open ? 56.0f : 100.0f) * u;
+    float top = compact?header_height():(sidebar_open ? 56.0f : 100.0f) * u;
     ImGui::SetCursorPos({left, top});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
-    ImGui::BeginChild("map", {width - left, height - top - 66 * u}, 0,
+    ImGui::BeginChild("map", {width - left, std::max(80*u,height - top - footer_height())}, 0,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
                           ImGuiWindowFlags_NoBackground);
     ImGui::PopStyleVar();
@@ -451,7 +443,7 @@ void map(float width, float height) {
     map_size = ImGui::GetContentRegionAvail();
     if (map_size.x != old_size.x || map_size.y != old_size.y)
         mark_view();
-    map_rect = {LONG(map_pos.x), LONG(map_pos.y), LONG(map_pos.x + map_size.x), LONG(map_pos.y + map_size.y)};
+    map_rect = {int(map_pos.x), int(map_pos.y), int(map_pos.x + map_size.x), int(map_pos.y + map_size.y)};
     auto* draw = ImGui::GetWindowDrawList();
     ImVec2 mouse = ImGui::GetIO().MousePos;
     float right = map_pos.x + map_size.x, bottom = map_pos.y + map_size.y;
@@ -482,7 +474,7 @@ void map(float width, float height) {
         ImVec2 mouse = ImGui::GetIO().MousePos;
         zoom(std::pow(0.75, ImGui::GetIO().MouseWheel), {mouse.x - map_pos.x, mouse.y - map_pos.y});
     }
-    if (hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+    if (!platform.touch&&hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
         ImVec2 mouse = ImGui::GetIO().MousePos;
         zoom(ImGui::GetIO().KeyShift ? 2.0 : 0.5, {mouse.x - map_pos.x, mouse.y - map_pos.y});
     }

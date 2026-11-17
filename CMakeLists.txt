@@ -35,7 +35,7 @@ target_link_libraries(seedlens_core PUBLIC java_worldgen bedrock_worldgen ole32 
 add_library(imgui STATIC third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp third_party/imgui/imgui_tables.cpp third_party/imgui/imgui_widgets.cpp third_party/imgui/backends/imgui_impl_win32.cpp third_party/imgui/backends/imgui_impl_dx11.cpp)
 target_include_directories(imgui PUBLIC third_party/imgui third_party/imgui/backends)
 target_compile_options(imgui PRIVATE -Os -w)
-add_executable(SeedLens WIN32 src/main.cpp src/ui.cpp src/export.cpp assets/app.rc)
+add_executable(SeedLens WIN32 src/main.cpp src/ui.cpp src/export.cpp src/export_common.cpp src/platform_win32.cpp assets/app.rc)
 target_include_directories(SeedLens PRIVATE assets ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(SeedLens PRIVATE -Os -Wall -Wextra)
 target_link_options(SeedLens PRIVATE -municode)

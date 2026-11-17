@@ -3,6 +3,7 @@
 #include "lucide_icons.h"
 #include "minecraft_icons.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -127,15 +128,14 @@ void copy_position(const World& w, const SLMarker& m, bool teleport) {
 } // namespace
 
 struct App::Impl {
-    HWND window;
-    ID3D11Device* device;
+    Platform platform;
     Session s;
     std::filesystem::path settings;
     TilePool tiles;
     SearchWorker map_search, finder;
     std::unique_ptr<Context> probe;
     struct GpuTile {
-        ID3D11ShaderResourceView* view = nullptr;
+        TextureHandle view = 0;
         std::vector<int> ids;
         uint64_t touched = 0;
         bool ok = true;
@@ -145,14 +145,16 @@ struct App::Impl {
     std::optional<SLMarker> selected;
     std::optional<std::filesystem::path> png;
     std::optional<Session> saved_session;
-    RECT map_rect{};
+    PixelRect map_rect{};
     ImVec2 map_pos{}, map_size{};
     float u = 1;
     bool sidebar_open = true;
+    bool compact=false,dismiss_popups=false,layout_ready=false;
+    std::optional<ImVec2> pending_context;
     bool zooming = false;
     double target_bpp = 4, anchor_x = 0, anchor_z = 0;
     ImVec2 zoom_anchor{};
-    ID3D11ShaderResourceView* game_atlas = nullptr;
+    TextureHandle game_atlas = 0;
     uint64_t frame_count = 0, map_request = 0, find_request = 0;
     double last_view_change = 0, last_search = -1, last_save = 0, toast_time = 0;
     bool view_dirty = true, find_open = false, bookmarks_open = false, help_open = false, add_open = false,
@@ -166,29 +168,21 @@ struct App::Impl {
     SLMarker bookmark_target{};
     World bookmark_world;
 
-    Impl(HWND hwnd, ID3D11Device* dev, Session session, std::filesystem::path path)
-        : window(hwnd), device(dev), s(std::move(session)), settings(std::move(path)),
-          tiles([hwnd] { PostMessageW(hwnd, WM_APP + 1, 0, 0); }),
-          map_search([hwnd] { PostMessageW(hwnd, WM_APP + 1, 0, 0); }),
-          finder([hwnd] { PostMessageW(hwnd, WM_APP + 1, 0, 0); }) {
+    Impl(Platform services,Session session,std::filesystem::path path)
+        :platform(std::move(services)),s(std::move(session)),settings(std::move(path)),
+         tiles(platform.wake),map_search(platform.wake),finder(platform.wake){
+        sidebar_open=!platform.touch;
         snprintf(seed_input, sizeof(seed_input), "%s", s.seed_text.c_str());
         jump_x = int(s.x);
         jump_z = int(s.z);
         sync_world();
         load_game_sprites();
-        HMODULE module = GetModuleHandleW(nullptr);
-        HRSRC resource = FindResourceW(module, MAKEINTRESOURCEW(200), RT_RCDATA);
-        if (resource) {
-            HGLOBAL data = LoadResource(module, resource);
-            if (data)
-                license_text.assign(static_cast<const char*>(LockResource(data)),
-                                    SizeofResource(module, resource));
-        }
+        if(platform.resource_data){auto bytes=platform.resource_data(200);license_text.assign(bytes.begin(),bytes.end());}
     }
     ~Impl() {
         clear_tiles();
         if (game_atlas)
-            game_atlas->Release();
+            platform.release_texture(game_atlas);
     }
     const char* t(const char* ja, const char* en) const {
         return s.japanese ? ja : en;
@@ -200,7 +194,7 @@ struct App::Impl {
     void clear_tiles() {
         for (auto& [key, tile] : cache)
             if (tile.view)
-                tile.view->Release();
+                platform.release_texture(tile.view);
         cache.clear();
     }
     void mark_view() {
@@ -315,8 +309,8 @@ struct App::Impl {
     }
     void set_texture(GpuTile& tile) {
         if (tile.view) {
-            tile.view->Release();
-            tile.view = nullptr;
+            platform.release_texture(tile.view);
+            tile.view = 0;
         }
         std::vector<uint32_t> pixels(tile.ids.size());
         for (size_t i = 0; i < pixels.size(); ++i) {
@@ -328,24 +322,8 @@ struct App::Impl {
             }
             pixels[i] = c;
         }
-        D3D11_TEXTURE2D_DESC desc{};
-        desc.Width = tile_size;
-        desc.Height = tile_size;
-        desc.MipLevels = 1;
-        desc.ArraySize = 1;
-        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count = 1;
-        desc.Usage = D3D11_USAGE_IMMUTABLE;
-        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        D3D11_SUBRESOURCE_DATA data{};
-        data.pSysMem = pixels.data();
-        data.SysMemPitch = tile_size * 4;
-        ID3D11Texture2D* texture = nullptr;
-        if (SUCCEEDED(device->CreateTexture2D(&desc, &data, &texture))) {
-            device->CreateShaderResourceView(texture, nullptr, &tile.view);
-            texture->Release();
-        } else
-            tile.ok = false;
+        tile.view=platform.create_texture(pixels.data(),tile_size,tile_size);
+        if(!tile.view)tile.ok=false;
     }
     void collect() {
         for (auto& tile : tiles.collect()) {
@@ -359,7 +337,7 @@ struct App::Impl {
                 set_texture(gpu);
             auto it = cache.find(tile.key);
             if (it != cache.end() && it->second.view)
-                it->second.view->Release();
+                platform.release_texture(it->second.view);
             cache[tile.key] = std::move(gpu);
         }
         if (cache.size() > 144) {
@@ -373,7 +351,7 @@ struct App::Impl {
                     break;
                 auto it = cache.find(key);
                 if (it->second.view)
-                    it->second.view->Release();
+                    platform.release_texture(it->second.view);
                 cache.erase(it);
             }
         }
@@ -457,16 +435,19 @@ struct App::Impl {
             search_results ? (find_result ? &*find_result : nullptr) : (map_result ? &*map_result : nullptr);
         if (!result)
             return;
-        auto path = save_dialog(window, L"csv", L"SeedLens-structures.csv");
+        auto path = platform.choose_save( L"csv", L"SeedLens-structures.csv");
         if (path.empty())
             return;
         std::string message;
-        if (write_csv(path, result->request.world, result->markers, message))
-            tell(t("CSVを保存しました", "CSV saved"));
+        if (write_csv(path, result->request.world, result->markers, message)){
+            if(platform.finish_export)platform.finish_export(path,"text/csv");
+            tell(platform.touch?t("保存先を選択してください","Choose where to save"):t("CSVを保存しました","CSV saved"));
+        }
         else
             tell(message);
     }
 #include "ui_layout.h"
+#include "ui_mobile.h"
 
     ImVec2 screen(int x, int z) const {
         return {map_pos.x + map_size.x / 2 + float((x - s.x) / s.blocks_per_pixel),
@@ -531,7 +512,7 @@ struct App::Impl {
                 continue;
             if (key.scale == 256)
                 tile->touched = frame_count;
-            draw->AddImage(ImTextureRef(tile->view), a, b);
+            draw->AddImage(ImTextureRef(ImTextureID(tile->view)), a, b);
         }
         std::vector<TileKey> missing;
         for (int z = tz0; z <= tz1; ++z)
@@ -542,7 +523,7 @@ struct App::Impl {
                 if (it != cache.end()) {
                     it->second.touched = frame_count;
                     if (it->second.view)
-                        draw->AddImage(ImTextureRef(it->second.view), a, b);
+                        draw->AddImage(ImTextureRef(ImTextureID(it->second.view)), a, b);
                     else
                         draw->AddRectFilled(a, b, IM_COL32(54, 36, 37, 255));
                 } else {
@@ -662,6 +643,10 @@ struct App::Impl {
             if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !dragging)
                 selected = *hit;
         }
+        if(pending_context){
+            auto [x,z]=world_at(*pending_context);SLMarker m{};m.kind=-2;m.x=x;m.z=z;m.y=s.world.y;m.biome=probe->biome(x,s.world.y,z);
+            selected=m;pending_context.reset();ImGui::OpenPopup("map_context");
+        }
         if (hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
             auto [x, z] = world_at(ImGui::GetIO().MousePos);
             SLMarker m{};
@@ -695,11 +680,11 @@ struct App::Impl {
         if (!selected)
             return;
         auto m = *selected;
-        float w = 310 * u, h = 204 * u;
-        auto anchor = screen(m.x, m.z);
-        ImGui::SetNextWindowPos(
-            {std::clamp(anchor.x + 22 * u, map_pos.x + 12 * u, map_pos.x + map_size.x - w - 58 * u),
-             std::clamp(anchor.y + 20 * u, map_pos.y + 36 * u, map_pos.y + map_size.y - h - 12 * u)});
+        float w = std::min(310*u,map_size.x-24*u), h=204*u;
+        auto anchor=screen(m.x,m.z);
+        float lo_x=map_pos.x+12*u,hi_x=std::max(lo_x,map_pos.x+map_size.x-w-58*u);
+        float lo_y=map_pos.y+12*u,hi_y=std::max(lo_y,map_pos.y+map_size.y-h-12*u);
+        ImGui::SetNextWindowPos(compact?ImVec2{map_pos.x+(map_size.x-w)/2,hi_y}:ImVec2{std::clamp(anchor.x+22*u,lo_x,hi_x),std::clamp(anchor.y+20*u,lo_y,hi_y)});
         ImGui::SetNextWindowSize({w, h});
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {16 * u, 13 * u});
         ImGui::SetNextWindowBgAlpha(0.97f);
@@ -771,7 +756,7 @@ struct App::Impl {
             ImGui::OpenPopup("Find locations##findmodal");
             find_open = false;
         }
-        ImGui::SetNextWindowSize({680 * u, 620 * u}, ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(modal_size(680,620), ImGuiCond_Appearing);
         bool open = true;
         if (!ImGui::BeginPopupModal("Find locations##findmodal", &open, ImGuiWindowFlags_NoSavedSettings))
             return;
@@ -793,7 +778,7 @@ struct App::Impl {
                         break;
                     }
             }
-            ImGui::SetNextItemWidth(350 * u);
+            ImGui::SetNextItemWidth(std::min(350*u,ImGui::GetContentRegionAvail().x));
             if (ImGui::BeginCombo("##findkind", t(kinds()[find_kind].ja, kinds()[find_kind].en))) {
                 for (auto& k : kinds())
                     if (probe->supports(k.kind) && ImGui::Selectable(t(k.ja, k.en), find_kind == k.kind))
@@ -807,7 +792,7 @@ struct App::Impl {
                         find_biome_id = id;
                         break;
                     }
-            ImGui::SetNextItemWidth(350 * u);
+            ImGui::SetNextItemWidth(std::min(350*u,ImGui::GetContentRegionAvail().x));
             std::string name = biome_label(s.world, find_biome_id, s.japanese);
             if (ImGui::BeginCombo("##findbiome", name.c_str())) {
                 for (int id = 0; id < 256; ++id)
@@ -819,8 +804,8 @@ struct App::Impl {
                 ImGui::EndCombo();
             }
         }
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(180 * u);
+        if(!compact||ImGui::GetWindowWidth()/u>=620)ImGui::SameLine();
+        ImGui::SetNextItemWidth(std::min(180*u,ImGui::GetContentRegionAvail().x));
         if (!find_biome && find_kind == SL_DUNGEON)
             find_radius = 128;
         std::string radius = std::to_string(find_radius) + t(" ブロック", " blocks");
@@ -854,7 +839,7 @@ struct App::Impl {
                 find_result.reset();
             }
         } else {
-            ImGui::ProgressBar(finder.progress(), {350 * u, 25 * u});
+            ImGui::ProgressBar(finder.progress(), {std::min(250*u,ImGui::GetContentRegionAvail().x-90*u), 25 * u});
             ImGui::SameLine();
             if (ImGui::Button(t("中止", "Cancel"))) {
                 finder.cancel();
@@ -883,7 +868,8 @@ struct App::Impl {
         ImGui::InputTextWithHint("##findfilter", t("結果を絞り込み…", "Filter results…"), find_filter,
                                  sizeof(find_filter));
         float remaining = ImGui::GetContentRegionAvail().y - 44 * u;
-        if (ImGui::BeginTable("results", 4,
+        if(compact)mobile_search_results(remaining);
+        else if (ImGui::BeginTable("results", 4,
                               ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_BordersInnerH,
                               {0, remaining})) {
             ImGui::TableSetupColumn(t("種類", "Type"), ImGuiTableColumnFlags_WidthStretch);
@@ -946,7 +932,7 @@ struct App::Impl {
             ImGui::OpenPopup("Add bookmark##add");
             add_open = false;
         }
-        ImGui::SetNextWindowSize({430 * u, 190 * u}, ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(modal_size(430,190), ImGuiCond_Appearing);
         if (ImGui::BeginPopupModal("Add bookmark##add", nullptr,
                                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings)) {
             ImGui::Text("X %d   Z %d", bookmark_target.x, bookmark_target.z);
@@ -969,7 +955,7 @@ struct App::Impl {
             ImGui::OpenPopup("Bookmarks##bookmarksmodal");
             bookmarks_open = false;
         }
-        ImGui::SetNextWindowSize({660 * u, 520 * u}, ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(modal_size(660,520), ImGuiCond_Appearing);
         bool open = true;
         if (!ImGui::BeginPopupModal("Bookmarks##bookmarksmodal", &open, ImGuiWindowFlags_NoSavedSettings))
             return;
@@ -1034,7 +1020,7 @@ struct App::Impl {
             ImGui::OpenPopup("Help##about");
             help_open = false;
         }
-        ImGui::SetNextWindowSize({720 * u, 640 * u}, ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(modal_size(720,640), ImGuiCond_Appearing);
         bool open = true;
         if (!ImGui::BeginPopupModal("Help##about", &open, ImGuiWindowFlags_NoSavedSettings))
             return;
@@ -1159,7 +1145,7 @@ struct App::Impl {
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_G))
             center(jump_x, jump_z);
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S)) {
-            auto p = save_dialog(window, L"png", L"SeedLens.png");
+            auto p = platform.choose_save( L"png", L"SeedLens.png");
             if (!p.empty())
                 png = p;
         }
@@ -1204,6 +1190,9 @@ struct App::Impl {
     }
     void frame(float dpi) {
         u = dpi;
+        compact=platform.touch&&ImGui::GetIO().DisplaySize.x/u<1000;
+        if(!layout_ready){sidebar_open=!platform.touch||!compact;layout_ready=true;}
+        if(dismiss_popups){if(ImGui::GetCurrentContext()->OpenPopupStack.Size)ImGui::ClosePopupToLevel(0,true);dismiss_popups=false;}
         ++frame_count;
         style();
         sync_world();
@@ -1232,7 +1221,7 @@ struct App::Impl {
         bookmark_dialog();
         help_dialog();
         if (!toast.empty() && ImGui::GetTime() - toast_time < 4) {
-            ImGui::SetNextWindowPos({map_pos.x + map_size.x / 2, 82 * u}, ImGuiCond_Always, {0.5f, 0});
+            ImGui::SetNextWindowPos({map_pos.x + map_size.x / 2, header_height()+16*u}, ImGuiCond_Always, {0.5f, 0});
             ImGui::SetNextWindowBgAlpha(0.98f);
             ImGui::Begin("##notification", nullptr,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
@@ -1249,8 +1238,8 @@ struct App::Impl {
         }
     }
 };
-App::App(HWND w, ID3D11Device* d, Session s, std::filesystem::path p)
-    : impl_(std::make_unique<Impl>(w, d, std::move(s), std::move(p))) {}
+App::App(Platform services,Session s,std::filesystem::path p)
+    :impl_(std::make_unique<Impl>(std::move(services),std::move(s),std::move(p))){}
 App::~App() = default;
 void App::frame(float dpi) {
     impl_->frame(dpi);
@@ -1269,10 +1258,32 @@ std::optional<std::filesystem::path> App::take_export() {
     impl_->png.reset();
     return path;
 }
-RECT App::export_rect() const {
+PixelRect App::export_rect() const {
     return impl_->map_rect;
 }
 void App::notification(std::string message) {
     impl_->tell(std::move(message));
+}
+bool App::map_input_at(float x,float y) const{
+    const auto& p=*impl_;
+    return !(p.compact&&p.sidebar_open)&&ImGui::GetCurrentContext()->OpenPopupStack.empty()&&
+        x>=p.map_pos.x&&y>=p.map_pos.y&&x<p.map_pos.x+p.map_size.x&&y<p.map_pos.y+p.map_size.y;
+}
+bool App::gesture(double factor,float x,float y,float dx,float dy){
+    if(!map_input_at(x,y))return false;
+    impl_->s.x-=dx*impl_->s.blocks_per_pixel;impl_->s.z-=dy*impl_->s.blocks_per_pixel;
+    if(std::abs(factor-1)>0.0001)impl_->zoom(factor,{x-impl_->map_pos.x,y-impl_->map_pos.y});
+    else impl_->mark_view();
+    return true;
+}
+bool App::context_at(float x,float y){
+    if(!map_input_at(x,y))return false;
+    impl_->pending_context=ImVec2{x,y};return true;
+}
+bool App::back(){
+    if(!ImGui::GetCurrentContext()->OpenPopupStack.empty()){impl_->dismiss_popups=true;return true;}
+    if(impl_->compact&&impl_->sidebar_open){impl_->sidebar_open=false;return true;}
+    if(impl_->selected){impl_->selected.reset();return true;}
+    return false;
 }
 } // namespace seedlens
