@@ -19,7 +19,7 @@ For other architectures:
 
     python scripts/build_android.py --abi arm64-v8a armeabi-v7a x86_64 --output dist/SeedLens-universal.apk
 
-The script creates a signing key in the user's .cache/seedlens-mobile/signing directory, outside the repository. Preserve this directory securely to sign future updates with the same identity. SEEDLENS_SIGNING_DIR selects another private directory. Keys, passwords and provisioning profiles must not be committed. The release APK is signed; CI or third-party builds with a different key cannot update it in place.
+The script creates a signing key in the user's .seedlens/signing directory, outside the repository and tool cache. Preserve this directory securely to sign future updates with the same identity. Older keys under .cache/seedlens-mobile/signing are copied automatically on the first build. SEEDLENS_SIGNING_DIR selects another private directory. Keys, passwords and provisioning profiles must not be committed. The release APK is signed; CI or third-party builds with a different key cannot update it in place.
 
 ## iOS / iPadOS
 

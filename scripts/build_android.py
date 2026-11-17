@@ -92,9 +92,13 @@ def compile_native(abi,prebuilt,sdl,include):
     return result,library
 
 def sign(apk,tools,destination):
-    signing=Path(os.environ.get('SEEDLENS_SIGNING_DIR',CACHE/'signing'))
+    signing=Path(os.environ.get('SEEDLENS_SIGNING_DIR',Path.home()/'.seedlens/signing'))
     signing.mkdir(parents=True,exist_ok=True)
     key=signing/'seedlens-android.jks';password_file=signing/'password.txt'
+    legacy=CACHE/'signing'
+    if not os.environ.get('SEEDLENS_SIGNING_DIR') and not key.exists() and (legacy/key.name).exists() and (legacy/password_file.name).exists():
+        shutil.copy2(legacy/key.name,key);shutil.copy2(legacy/password_file.name,password_file)
+    if key.exists() and not password_file.exists():raise RuntimeError('Restore the missing signing password.txt from your private backup.')
     if not password_file.exists():password_file.write_text(os.urandom(32).hex(),encoding='utf-8')
     password=password_file.read_text(encoding='utf-8').strip()
     env=dict(os.environ);env['SEEDLENS_SIGNING_PASSWORD']=password
