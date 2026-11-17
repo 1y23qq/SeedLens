@@ -14,8 +14,13 @@ on:
         type: choice
         default: macos-15
         options: [macos-15, macos-15-intel]
+      simulator_artifact_run:
+        description: Optional simulator-app artifact run to reuse
+        type: string
+        default: ''
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
@@ -54,6 +59,7 @@ jobs:
           open -a Simulator
           xcrun simctl boot "$DEVICE" || true
       - name: Build iOS simulator application
+        if: inputs.simulator_artifact_run == ''
         run: |
           cmake -S mobile -B build-mobile/ios-sim -G Xcode \
             -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
@@ -61,6 +67,16 @@ jobs:
           cmake --build build-mobile/ios-sim --config Release --target SeedLens --parallel 3
           mkdir -p dist
           ditto -c -k --keepParent build-mobile/ios-sim/Release-iphonesimulator/SeedLens.app dist/SeedLens-simulator.zip
+      - name: Reuse simulator application
+        if: inputs.simulator_artifact_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_RUN: ${{ inputs.simulator_artifact_run }}
+        run: |
+          gh run download "$ARTIFACT_RUN" --repo "$GITHUB_REPOSITORY" --name SeedLens-iOS-simulator-app --dir build-mobile/prebuilt
+          mkdir -p build-mobile/ios-sim/Release-iphonesimulator dist
+          ditto -x -k build-mobile/prebuilt/SeedLens-simulator.zip build-mobile/ios-sim/Release-iphonesimulator
+          cp build-mobile/prebuilt/SeedLens-simulator.zip dist/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: SeedLens-iOS-simulator-app
@@ -71,8 +87,12 @@ jobs:
           DEVICE="$IOS_TEST_DEVICE"
           sim bootstatus "$DEVICE" -b
           sim install "$DEVICE" build-mobile/ios-sim/Release-iphonesimulator/SeedLens.app
-          sim launch --console "$DEVICE" com.seedlens.app --self-test
+          sim launch "$DEVICE" com.seedlens.app --self-test
           DATA=$(sim get_app_container "$DEVICE" com.seedlens.app data)
+          python3 -c 'import pathlib,sys,time;root=pathlib.Path(sys.argv[1]);end=time.monotonic()+90
+          while not list(root.rglob("self-test.json")):
+              if time.monotonic()>end:raise RuntimeError("Native self-test report did not appear")
+              time.sleep(1)' "$DATA"
           REPORT=$(find "$DATA" -name self-test.json -print -quit)
           python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d);assert d["ok"]' "$REPORT"
           sim launch "$DEVICE" com.seedlens.app
