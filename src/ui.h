@@ -11,6 +11,7 @@ class App {
     bool busy() const;
     const Session& session() const;
     std::optional<std::filesystem::path> take_export();
+    void request_export(std::filesystem::path);
     PixelRect export_rect() const;
     void notification(std::string);
     bool gesture(double factor,float x,float y,float dx=0,float dy=0);

@@ -33,6 +33,6 @@ Requires iOS / iPadOS 15+, macOS, Xcode, CMake and Python 3. An unsigned ARM64 d
 
 The IPA contains a real ARM64 iPhone/iPad app bundle. It is **unsigned** and cannot be installed directly until it is signed with a valid Apple signing identity and a provisioning profile for the intended installation method. No Apple account or signing material is included. For an Xcode-signed build, set the target's signing team and enable code signing locally.
 
-For the simulator, use iphonesimulator as CMAKE_OSX_SYSROOT and the host architecture as CMAKE_OSX_ARCHITECTURES. Launching with --self-test runs the same native core assertions as Windows and writes self-test.json under the application preference directory. The Mobile GitHub Actions workflow builds both a device IPA and simulator app, runs this check, and captures a screenshot.
+For the simulator, use iphonesimulator as CMAKE_OSX_SYSROOT and the host architecture as CMAKE_OSX_ARCHITECTURES. Launching with --self-test runs the same native core assertions as Windows and writes self-test.json under the application preference directory. The Mobile GitHub Actions workflow builds both a device IPA and simulator app, runs this check, and captures iPhone/iPad screenshots in all dimensions. The --export-smoke diagnostic flag captures a clean native map and opens the system document picker after generation completes.
 
 The generation coverage and accuracy limitations are identical to the Windows application; see the main README.

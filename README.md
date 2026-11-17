@@ -8,6 +8,8 @@ Windows版は約4.9MiBのexe一つ。Java、Python、WebView、追加DLL、ネ�
 
 ![SeedLens](docs/SeedLens.png)
 
+<p><img src="docs/SeedLens-Android.png" alt="Android" width="280"> <img src="docs/SeedLens-iPhone.png" alt="iPhone" width="280"></p>
+
 ## 機能
 
 - Java / Bedrockそれぞれ専用のネイティブ生成エンジン。

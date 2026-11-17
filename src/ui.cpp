@@ -36,6 +36,7 @@ void icon(ImDrawList* draw, const char* name, ImVec2 pos, float size, ImU32 colo
     }
 }
 void hint(const char* label) {
+    if(ImGui::GetIO().MouseSource==ImGuiMouseSource_TouchScreen)return;
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 28);
@@ -637,7 +638,7 @@ struct App::Impl {
             ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
             bool showing =
                 selected && selected->kind == hit->kind && selected->x == hit->x && selected->z == hit->z;
-            if (!showing && !png) {
+            if (!showing && !png&&ImGui::GetIO().MouseSource!=ImGuiMouseSource_TouchScreen) {
                 ImGui::BeginTooltip();
                 ImGui::TextUnformatted(t(kinds()[hit->kind].ja, kinds()[hit->kind].en));
                 ImGui::TextColored(color4(muted), "X %d   Z %d", hit->x, hit->z);
@@ -941,7 +942,7 @@ struct App::Impl {
             ImGui::Text("X %d   Z %d", bookmark_target.x, bookmark_target.z);
             ImGui::SetNextItemWidth(-1);
             bool add = ImGui::InputText("##bookmarkname", bookmark_name, sizeof(bookmark_name),
-                                        ImGuiInputTextFlags_EnterReturnsTrue);
+                                        ImGuiInputTextFlags_EnterReturnsTrue|ImGuiInputTextFlags_AutoSelectAll);
             add |= action_button("savebookmark", "bookmark", t("保存", "Save"), {130 * u, 34 * u});
             ImGui::SameLine();
             if (ImGui::Button(t("キャンセル", "Cancel"), {100 * u, 34 * u}))
@@ -1242,9 +1243,9 @@ struct App::Impl {
             ImGui::Begin("##notification", nullptr,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                              ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
-            ImGui::PushTextWrapPos();
+            if(platform.touch)ImGui::PushTextWrapPos();
             ImGui::TextColored(color4(accent), "%s", toast.c_str());
-            ImGui::PopTextWrapPos();
+            if(platform.touch)ImGui::PopTextWrapPos();
             ImGui::End();
         }
         if (ImGui::GetTime() - last_save > 10) {
@@ -1279,6 +1280,9 @@ std::optional<std::filesystem::path> App::take_export() {
     impl_->png.reset();
     impl_->png_requested_frame=0;
     return path;
+}
+void App::request_export(std::filesystem::path path){
+    impl_->png=std::move(path);impl_->png_requested_frame=0;
 }
 PixelRect App::export_rect() const {
     return impl_->map_rect;

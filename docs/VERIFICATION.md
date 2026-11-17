@@ -48,3 +48,9 @@ A separate test-only instrumentation APK injects a real two-finger MotionEvent s
     python tests/android_touch.py --serial <emulator-serial> --server-port <adb-server-port>
 
 This does not establish performance or compatibility on every physical Android device. The ARM64 and ARMv7 libraries are cross-compiled with the Android NDK; interactive emulator checks use the x86-64 build of the same C++ source. ARM64 and x86-64 ELF load segments were checked at 16-KiB alignment, including the official SDL3 library. The ARMv7 SDL3 binary uses 4-KiB alignment.
+
+The final Android package was rechecked from a fresh install with Wi-Fi and mobile data disabled. Unicode bookmark names persisted across process restarts, numeric seed replacement and range errors were checked through native text input, and the saved structure CSV decoded as UTF-8 with the expected columns. Clean PNG exports were pulled back and visually checked. The Windows GUI also saved a clean map through its native file dialog after the common export change.
+
+iOS builds were checked with Xcode 16.4 and the iPhoneOS 18.5 SDK, targeting ARM64 devices on iOS 15+. The unsigned IPA was inspected for a real ARM64 Mach-O executable, a valid iPhone/iPad Info.plist and compiled app icons. An Apple Silicon iOS simulator passed all 2,622 native assertions. iPhone and iPad screenshots were checked visually, including Retina framebuffer scaling, the Overworld, Nether and End. CI also launches the native PNG export path and retains the exported image and document-picker screenshot.
+
+Physical Android/iOS installations have not been tested. The IPA needs an Apple signing identity and provisioning profile or a compatible re-signing workflow before installation on an iPhone or iPad. Simulator results do not establish compatibility or performance on every physical device.

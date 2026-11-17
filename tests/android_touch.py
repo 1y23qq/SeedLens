@@ -46,23 +46,25 @@ public final class Smoke extends Instrumentation {
             double before=scale();
             DisplayMetrics metrics=new DisplayMetrics();activity.getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
             float w=metrics.widthPixels,h=metrics.heightPixels,y=h*.45f;
+            boolean zoomIn=before>=.6;
+            float start=zoomIn?.10f:.22f,end=zoomIn?.22f:.10f;
             UiAutomation ui=getUiAutomation();long down=SystemClock.uptimeMillis();
-            pointer(ui,down,MotionEvent.ACTION_DOWN,new float[]{w*.40f},new float[]{y});
-            pointer(ui,down,MotionEvent.ACTION_POINTER_DOWN|(1<<MotionEvent.ACTION_POINTER_INDEX_SHIFT),new float[]{w*.40f,w*.60f},new float[]{y,y});
+            pointer(ui,down,MotionEvent.ACTION_DOWN,new float[]{w*(.5f-start)},new float[]{y});
+            pointer(ui,down,MotionEvent.ACTION_POINTER_DOWN|(1<<MotionEvent.ACTION_POINTER_INDEX_SHIFT),new float[]{w*(.5f-start),w*(.5f+start)},new float[]{y,y});
             for(int i=1;i<=24;i++){
-                float d=.10f+.12f*i/24;
+                float d=start+(end-start)*i/24;
                 pointer(ui,down,MotionEvent.ACTION_MOVE,new float[]{w*(.5f-d),w*(.5f+d)},new float[]{y,y});
                 Thread.sleep(16);
             }
-            pointer(ui,down,MotionEvent.ACTION_POINTER_UP|(1<<MotionEvent.ACTION_POINTER_INDEX_SHIFT),new float[]{w*.28f,w*.72f},new float[]{y,y});
-            pointer(ui,down,MotionEvent.ACTION_UP,new float[]{w*.28f},new float[]{y});
+            pointer(ui,down,MotionEvent.ACTION_POINTER_UP|(1<<MotionEvent.ACTION_POINTER_INDEX_SHIFT),new float[]{w*(.5f-end),w*(.5f+end)},new float[]{y,y});
+            pointer(ui,down,MotionEvent.ACTION_UP,new float[]{w*(.5f-end)},new float[]{y});
             Thread.sleep(1000);
             File image=new File(getTargetContext().getFilesDir(),"touch-test.png");
             try(FileOutputStream output=new FileOutputStream(image)){ui.takeScreenshot().compress(android.graphics.Bitmap.CompressFormat.PNG,100,output);}
             ui.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME);Thread.sleep(800);
             double after=scale();
             result.putString("before_bpp",Double.toString(before));result.putString("after_bpp",Double.toString(after));
-            if(!(after<before*.8))throw new AssertionError("Pinch did not zoom the native map");
+            if(!(zoomIn?after<before*.8:after>before*1.4))throw new AssertionError("Pinch did not zoom the native map");
             File core=new File(getTargetContext().getFilesDir(),"self-test.json");
             if(core.exists())result.putString("core_report",new String(Files.readAllBytes(core.toPath()),"UTF-8").trim());
             result.putString("result","PASS");finish(Activity.RESULT_OK,result);

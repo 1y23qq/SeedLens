@@ -25,7 +25,7 @@ struct MobileHost {
     SDL_Rect safe{};
     int target_w=0,target_h=0;
     float pixel_ratio=1,ui_scale=1;
-    bool dirty=true,background=false,mobile=true;
+    bool dirty=true,background=false,mobile=true,export_smoke=false;
     Uint64 next_frame=0;
     Uint32 wake_event=0;
     std::filesystem::path data_dir,settings;
@@ -136,6 +136,7 @@ SDL_AppResult SDL_AppInit(void** state,int argc,char** argv){
         std::string arg=argv[i];
         if(arg=="--mobile-preview")host->mobile=true;
         else if(arg=="--self-test")self_test=true;
+        else if(arg=="--export-smoke")host->export_smoke=true;
         else if(arg=="--scene"&&i+1<argc)scene=argv[++i];
         else if(arg=="--wide"){width=1180;height=820;}
     }
@@ -163,7 +164,9 @@ SDL_AppResult SDL_AppInit(void** state,int argc,char** argv){
     io.IniFilename=nullptr;io.LogFilename=nullptr;io.ConfigFlags|=ImGuiConfigFlags_NavEnableKeyboard;
     host->fonts();ImGui_ImplSDL3_InitForSDLRenderer(host->window,host->renderer);
     ImGui_ImplSDLRenderer3_Init(host->renderer);
-    Session session;load_session(host->settings,session);
+    host->update_safe();
+    Session session;bool restored=load_session(host->settings,session);
+    if(host->mobile&&!restored)session.blocks_per_pixel/=host->ui_scale;
     if(scene=="nether")session.world.dimension=-1;
     if(scene=="end")session.world.dimension=1;
     host->app=std::make_unique<App>(host->platform(),std::move(session),host->settings);
@@ -213,6 +216,9 @@ SDL_AppResult SDL_AppIterate(void* state){
     SDL_SetRenderDrawColor(h.renderer,255,255,255,255);SDL_RenderClear(h.renderer);
     SDL_FRect destination{h.safe.x*h.pixel_ratio,h.safe.y*h.pixel_ratio,h.safe.w*h.pixel_ratio,h.safe.h*h.pixel_ratio};
     SDL_RenderTexture(h.renderer,h.target,nullptr,&destination);SDL_RenderPresent(h.renderer);
+    if(h.export_smoke&&!h.app->busy()){
+        h.export_smoke=false;h.app->request_export(h.data_dir/"SeedLens-test.png");h.dirty=true;
+    }
     h.next_frame=now+(h.app->busy()||!h.fingers.empty()?16:180);
     return SDL_APP_CONTINUE;
 }

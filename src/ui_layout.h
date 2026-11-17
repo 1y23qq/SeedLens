@@ -214,7 +214,7 @@ void sidebar(float height) {
             draw->AddRect(check, {check.x + 14 * u, check.y + 14 * u}, enabled ? accent : line, 3 * u);
             if (enabled)
                 icon(draw, "check", {check.x + 1 * u, check.y + 1 * u}, 12 * u, accent);
-            if (ImGui::IsItemHovered()) {
+            if (ImGui::IsItemHovered()&&ImGui::GetIO().MouseSource!=ImGuiMouseSource_TouchScreen) {
                 ImGui::BeginTooltip();
                 game_sprite(ImGui::GetWindowDrawList(), k.kind, ImGui::GetCursorScreenPos(), 28 * u);
                 ImGui::Dummy({34 * u, 28 * u});
