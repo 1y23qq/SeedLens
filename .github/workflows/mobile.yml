@@ -3,6 +3,12 @@ on:
   push:
     branches: [mobile]
   workflow_dispatch:
+    inputs:
+      target:
+        description: Build target
+        type: choice
+        default: all
+        options: [all, device, simulator]
 permissions:
   contents: read
 concurrency:
@@ -10,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   ios-device:
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'simulator'
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -30,7 +37,8 @@ jobs:
           name: SeedLens-iOS-device
           path: dist/*.ipa
   ios-simulator:
-    runs-on: macos-15
+    if: github.event_name != 'workflow_dispatch' || inputs.target != 'device'
+    runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
