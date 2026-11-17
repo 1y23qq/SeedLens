@@ -150,6 +150,7 @@ struct App::Impl {
     float u = 1;
     bool sidebar_open = true;
     bool compact=false,dismiss_popups=false,layout_ready=false;
+    uint64_t png_requested_frame=0;
     std::optional<ImVec2> pending_context;
     bool zooming = false;
     double target_bpp = 4, anchor_x = 0, anchor_z = 0;
@@ -1203,7 +1204,7 @@ struct App::Impl {
         u = dpi;
         compact=platform.touch&&ImGui::GetIO().DisplaySize.x/u<1000;
         if(!layout_ready){sidebar_open=!platform.touch||!compact;layout_ready=true;}
-        if(dismiss_popups){if(ImGui::GetCurrentContext()->OpenPopupStack.Size)ImGui::ClosePopupToLevel(0,true);dismiss_popups=false;}
+        if(dismiss_popups||png){if(ImGui::GetCurrentContext()->OpenPopupStack.Size)ImGui::ClosePopupToLevel(0,true);dismiss_popups=false;}
         ++frame_count;
         style();
         sync_world();
@@ -1222,16 +1223,18 @@ struct App::Impl {
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
         topbar(display.x);
-        sidebar(display.y);
+        if(!compact||!png)sidebar(display.y);
         featurebar(display.x);
         map(display.x, display.y);
         status(display.x, display.y);
         ImGui::End();
-        inspector();
-        search_dialog();
-        bookmark_dialog();
-        help_dialog();
-        if (!toast.empty() && ImGui::GetTime() - toast_time < 4) {
+        if(!png){
+            inspector();
+            search_dialog();
+            bookmark_dialog();
+            help_dialog();
+        }
+        if (!png&&!toast.empty() && ImGui::GetTime() - toast_time < 4) {
             ImGui::SetNextWindowPos({map_pos.x + map_size.x / 2, header_height()+16*u}, ImGuiCond_Always, {0.5f, 0});
             ImGui::SetNextWindowBgAlpha(0.98f);
             ImGui::Begin("##notification", nullptr,
@@ -1256,7 +1259,7 @@ void App::frame(float dpi) {
     impl_->frame(dpi);
 }
 bool App::busy() const {
-    return impl_->zooming || impl_->tiles.pending() || impl_->map_search.busy() || impl_->finder.busy() ||
+    return impl_->png.has_value()||impl_->zooming || impl_->tiles.pending() || impl_->map_search.busy() || impl_->finder.busy() ||
            ImGui::IsKeyDown(ImGuiKey_LeftArrow) || ImGui::IsKeyDown(ImGuiKey_RightArrow) ||
            ImGui::IsKeyDown(ImGuiKey_UpArrow) || ImGui::IsKeyDown(ImGuiKey_DownArrow) ||
            ImGui::IsMouseDragging(0) || ImGui::IsAnyItemActive();
@@ -1265,8 +1268,12 @@ const Session& App::session() const {
     return impl_->s;
 }
 std::optional<std::filesystem::path> App::take_export() {
+    if(!impl_->png)return {};
+    if(!impl_->png_requested_frame){impl_->png_requested_frame=impl_->frame_count;return {};}
+    if(impl_->frame_count<=impl_->png_requested_frame||impl_->tiles.pending()||impl_->map_search.busy()||impl_->zooming)return {};
     auto path = std::move(impl_->png);
     impl_->png.reset();
+    impl_->png_requested_frame=0;
     return path;
 }
 PixelRect App::export_rect() const {

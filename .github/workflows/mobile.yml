@@ -9,7 +9,7 @@ concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  ios:
+  ios-device:
     runs-on: macos-15
     timeout-minutes: 45
     steps:
@@ -25,6 +25,15 @@ jobs:
           mkdir -p dist/Payload
           cp -R build-mobile/ios/Release-iphoneos/SeedLens.app dist/Payload/
           cd dist && zip -qr SeedLens-unsigned.ipa Payload && rm -rf Payload
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: SeedLens-iOS-device
+          path: dist/*.ipa
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Build iOS simulator application
         run: |
           cmake -S mobile -B build-mobile/ios-sim -G Xcode \
@@ -43,6 +52,7 @@ jobs:
           python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d);assert d["ok"]' "$REPORT"
           xcrun simctl launch "$DEVICE" com.seedlens.app
           sleep 10
+          mkdir -p dist
           xcrun simctl io "$DEVICE" screenshot dist/ios-phone.png
           for SCENE in nether end; do
             xcrun simctl terminate "$DEVICE" com.seedlens.app
@@ -62,8 +72,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: SeedLens-iOS
+          name: SeedLens-iOS-simulator
           path: |
-            dist/*.ipa
             dist/*.png
             dist/*-report.json

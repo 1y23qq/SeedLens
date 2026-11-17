@@ -447,7 +447,7 @@ void map(float width, float height) {
     auto* draw = ImGui::GetWindowDrawList();
     ImVec2 mouse = ImGui::GetIO().MousePos;
     float right = map_pos.x + map_size.x, bottom = map_pos.y + map_size.y;
-    bool top_tools=map_size.y>=250*u,bottom_tools=map_size.y>=150*u;
+    bool top_tools=!png&&map_size.y>=250*u,bottom_tools=!png&&map_size.y>=150*u;
     bool over_tools = mouse.x >= right - 51 * u && mouse.x <= right - 10 * u &&
                       ((top_tools&&mouse.y >= map_pos.y + 10 * u && mouse.y <= map_pos.y + 85 * u) ||
                        (bottom_tools&&mouse.y >= bottom - 132 * u && mouse.y <= bottom - 19 * u));
