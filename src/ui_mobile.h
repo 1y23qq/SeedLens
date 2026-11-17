@@ -4,6 +4,13 @@ ImVec2 modal_size(float width,float height) const{
     auto display=ImGui::GetIO().DisplaySize;
     return {std::min(width*u,display.x-20*u),std::min(height*u,display.y-20*u)};
 }
+void prepare_modal(float width,float height){
+    ImGui::SetNextWindowSize(modal_size(width,height),compact?ImGuiCond_Always:ImGuiCond_Appearing);
+    if(compact)ImGui::SetNextWindowPos({ImGui::GetIO().DisplaySize.x/2,ImGui::GetIO().DisplaySize.y/2},ImGuiCond_Always,{0.5f,0.5f});
+}
+ImGuiWindowFlags modal_flags() const{
+    return ImGuiWindowFlags_NoSavedSettings|(compact?(ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar):0);
+}
 void version_picker(float width){
     const auto& api=backend(s.world.edition);
     std::string value=s.world.edition?"BE ":"Java ";
@@ -78,10 +85,12 @@ void mobile_status(float width,float height){
     draw->AddRectFilled({0,top},{width,height},panel);draw->AddLine({0,top},{width,top},line);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,{7*u,11*u});
     ImGui::SetCursorPos({12*u,top+6*u});
-    float input=narrow?(width-104*u)/2:115*u;
+    float input=narrow?(width-160*u)/2:100*u;
+    ImGui::AlignTextToFramePadding();ImGui::TextUnformatted("X");ImGui::SameLine(0,6*u);
     ImGui::SetNextItemWidth(input);
     bool go=ImGui::InputInt("##mobile_x",&jump_x,0,0,ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::SameLine(0,8*u);ImGui::SetNextItemWidth(input);
+    ImGui::SameLine(0,10*u);ImGui::AlignTextToFramePadding();ImGui::TextUnformatted("Z");
+    ImGui::SameLine(0,6*u);ImGui::SetNextItemWidth(input);
     go|=ImGui::InputInt("##mobile_z",&jump_z,0,0,ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::SameLine(0,8*u);
     go|=icon_button("##mobile_goto","locate-fixed",t("座標へ移動","Go to coordinates"),44*u);
@@ -107,7 +116,10 @@ void mobile_status(float width,float height){
         ImGui::EndPopup();
     }
     ImGui::PopStyleVar();
-    if(narrow){ImGui::SetCursorPos({width-86*u,top+68*u});ImGui::TextDisabled("X / Z");}
+    if(narrow){
+        ImGui::SameLine(0,8*u);
+        if(icon_button("##mobile_bookmarks","bookmark",t("ブックマーク","Bookmarks"),40*u))bookmarks_open=true;
+    }
     else{
         ImGui::SetCursorPos({12*u,top+47*u});
         std::string label=biome_label(s.world,probe->biome(int(s.x),s.world.y,int(s.z)),s.japanese);
@@ -129,6 +141,11 @@ void mobile_search_results(float height){
         if(m.kind>=0)game_sprite(draw,m.kind,{p.x+4*u,p.y+14*u},28*u,m.flags);
         else draw->AddRectFilled({p.x+7*u,p.y+16*u},{p.x+29*u,p.y+38*u},biome_color(m.biome,legacy_palette(s.world)),3*u);
         draw->AddText({p.x+42*u,p.y+7*u},text,label.c_str());
+        double cx=(find_result->request.x0+find_result->request.x1)/2.0,cz=(find_result->request.z0+find_result->request.z1)/2.0;
+        char distance[40];snprintf(distance,sizeof(distance),"%.0f blocks",std::hypot(m.x-cx,m.z-cz));
+        ImVec2 measure=ImGui::CalcTextSize(distance);
+        if(measure.x+ImGui::CalcTextSize(label.c_str()).x+64*u<width)
+            draw->AddText({p.x+width-measure.x-8*u,p.y+7*u},muted,distance);
         std::string position="X "+std::to_string(m.x)+"   Z "+std::to_string(m.z);
         draw->AddText({p.x+42*u,p.y+33*u},muted,position.c_str());
         draw->AddLine({p.x,p.y+60*u},{p.x+width,p.y+60*u},line);

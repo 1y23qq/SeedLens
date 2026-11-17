@@ -7,4 +7,6 @@ namespace seedlens {
 void mobile_export_file(const std::filesystem::path&,const char* mime);
 void mobile_initialize(SDL_Window*);
 void mobile_notifications(std::string&);
+int mobile_keyboard_height();
+void mobile_set_keyboard_height(int);
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "package": "platforms;android-36",
+    "url": "https://dl.google.com/android/repository/platform-36_r02.zip",
+    "size": "65878410",
+    "checksum": "2c1a80dd4d9f7d0e6dd336ec603d9b5c55a6f576"
+  },
+  {
+    "package": "build-tools;36.0.0",
+    "url": "https://dl.google.com/android/repository/build-tools_r36_windows.zip",
+    "size": "58699878",
+    "checksum": "f16ccffd34de8790dede813a6c7d8e2c11a27b50"
+  },
+  {
+    "package": "platform-tools",
+    "url": "https://dl.google.com/android/repository/platform-tools_r37.0.3-win.zip",
+    "size": "8188595",
+    "checksum": "b3fde5239ad89229d5a9178375b81c9887a24172"
+  },
+  {
+    "package": "emulator",
+    "url": "https://dl.google.com/android/repository/emulator-windows_x64-16916650.zip",
+    "size": "460845901",
+    "checksum": "2cd8beaf83472f12e99a0554a2db3626db81f4ba"
+  }
+]

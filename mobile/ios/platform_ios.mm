@@ -15,7 +15,19 @@ namespace seedlens {void mobile_set_notice(std::string);}
 @end
 namespace seedlens {
 static SDL_Window* app_window=nullptr;
-void mobile_initialize(SDL_Window* window){app_window=window;}
+void mobile_initialize(SDL_Window* window){
+    app_window=window;
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIKeyboardWillChangeFrameNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* note){
+        UIWindow* native=(__bridge UIWindow*)SDL_GetPointerProperty(SDL_GetWindowProperties(app_window),SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER,nullptr);
+        CGRect rect=[native convertRect:[note.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue] fromWindow:nil];
+        CGRect overlap=CGRectIntersection(native.bounds,rect);
+        bool docked=!CGRectIsNull(overlap)&&CGRectGetMaxY(overlap)>=native.bounds.size.height-1&&overlap.size.width>native.bounds.size.width/2;
+        mobile_set_keyboard_height(docked?int(overlap.size.height):0);
+    }];
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIKeyboardWillHideNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification*){
+        mobile_set_keyboard_height(0);
+    }];
+}
 void mobile_export_file(const std::filesystem::path& path,const char* mime){
     (void)mime;
     NSString* filename=[NSString stringWithUTF8String:path.string().c_str()];

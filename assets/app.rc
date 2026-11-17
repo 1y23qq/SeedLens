@@ -6,8 +6,8 @@
 401 RCDATA "fonts/NotoSansJP-Regular.bin"
 402 RCDATA "fonts/NotoSansJP-SemiBold.bin"
 1 VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
+FILEVERSION 1,1,0,0
+PRODUCTVERSION 1,1,0,0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -17,7 +17,7 @@ BEGIN
   BEGIN
    VALUE "FileDescription", "SeedLens"
    VALUE "ProductName", "SeedLens"
-   VALUE "ProductVersion", "1.0.0"
+   VALUE "ProductVersion", "1.1.0"
    VALUE "OriginalFilename", "SeedLens.exe"
    VALUE "LegalCopyright", "Copyright (c) 2026 1y23qq; MIT License"
   END

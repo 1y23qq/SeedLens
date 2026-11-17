@@ -67,7 +67,8 @@ def compile_native(abi,prebuilt,sdl,include):
     newest=max(newest,Path(__file__).stat().st_mtime)
     common=['--target='+target,'--sysroot='+str(prebuilt/'sysroot'),'-fPIC','-O2','-fwrapv','-fno-strict-aliasing','-ffp-contract=off',
         '-ffunction-sections','-fdata-sections','-fvisibility=hidden','-DNOMINMAX',
-        '-ffile-prefix-map='+str(ROOT)+'=.','-ffile-prefix-map='+ROOT.as_posix()+'=.']
+        '-ffile-prefix-map='+str(ROOT)+'=.','-ffile-prefix-map='+ROOT.as_posix()+'=.',
+        '-ffile-prefix-map='+str(CACHE)+'=mobile-sdk','-ffile-prefix-map='+CACHE.as_posix()+'=mobile-sdk']
     includes=[ROOT/'src',ROOT/'third_party/imgui',ROOT/'third_party/imgui/backends',include]
     jobs=[];objects=[]
     for source,bed,test in files:
@@ -90,7 +91,7 @@ def compile_native(abi,prebuilt,sdl,include):
     run([prebuilt/'bin'/('llvm-strip'+SUFFIX),'--strip-unneeded',result])
     return result,library
 
-def sign(apk,tools):
+def sign(apk,tools,destination):
     signing=Path(os.environ.get('SEEDLENS_SIGNING_DIR',CACHE/'signing'))
     signing.mkdir(parents=True,exist_ok=True)
     key=signing/'seedlens-android.jks';password_file=signing/'password.txt'
@@ -100,14 +101,17 @@ def sign(apk,tools):
     if not key.exists():
         run(['keytool','-genkeypair','-keystore',key,'-alias','seedlens','-keyalg','RSA','-keysize','4096','-validity','10000',
             '-storepass:env','SEEDLENS_SIGNING_PASSWORD','-keypass:env','SEEDLENS_SIGNING_PASSWORD','-dname','CN=SeedLens, OU=Independent Software, O=1y23qq, C=JP'],env)
-    result=ROOT/'dist/SeedLens.apk';result.parent.mkdir(exist_ok=True)
+    result=destination.resolve();result.parent.mkdir(parents=True,exist_ok=True)
     run(['java','-jar',tools/'lib/apksigner.jar','sign','--ks',key,'--ks-key-alias','seedlens','--ks-pass','env:SEEDLENS_SIGNING_PASSWORD',
         '--key-pass','env:SEEDLENS_SIGNING_PASSWORD','--out',result,apk],env)
     run(['java','-jar',tools/'lib/apksigner.jar','verify','--verbose',result])
     return result
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--abi',nargs='+',default=['arm64-v8a','armeabi-v7a','x86_64']);args=parser.parse_args()
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--abi',nargs='+',choices=['arm64-v8a','armeabi-v7a','x86_64'],default=['arm64-v8a'])
+    parser.add_argument('--output',type=Path,default=ROOT/'dist/SeedLens.apk')
+    args=parser.parse_args()
     tools,android_jar,prebuilt,sdl,include=find_tools()
     libraries={}
     for abi in args.abi:libraries[abi]=compile_native(abi,prebuilt,sdl,include)
@@ -132,7 +136,7 @@ def main():
             z.write(main_lib,f'lib/{abi}/libmain.so');z.write(sdl_lib,f'lib/{abi}/libSDL3.so')
     aligned=BUILD/'SeedLens-aligned.apk'
     run([tools/('zipalign'+SUFFIX),'-f','4',relative(unsigned),relative(aligned)])
-    result=sign(aligned,tools)
+    result=sign(aligned,tools,args.output)
     print('Built signed APK:',result,result.stat().st_size,'bytes',flush=True)
 
 if __name__=='__main__':

@@ -1,10 +1,10 @@
 # SeedLens
 
-Minecraft Java / Bedrock用の、オフラインで動くバイオーム・構造物マップ。C++20、Win32、DirectX 11製のWindowsアプリです。
+Minecraft Java / Bedrock用の、オフラインで動くバイオーム・構造物マップ。C++20製で、Windows / Android / iOSに対応します。
 
-**[SeedLens.exeをダウンロード](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens.exe)** · [リリース](https://github.com/1y23qq/SeedLens/releases) · [対応範囲と検証](docs/VERIFICATION.md)
+**[Windows EXE](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens.exe)** · **[Android APK](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens.apk)** · **[iOS IPA（再署名用）](https://github.com/1y23qq/SeedLens/releases/latest/download/SeedLens-unsigned.ipa)** · [対応範囲と検証](docs/VERIFICATION.md)
 
-配布は約4.9MiBのexe一つ。インストール、Java、Python、WebView、追加DLL、ネット接続は不要です。Windows 10 / 11 x64に対応します。
+Windows版は約4.9MiBのexe一つ。Java、Python、WebView、追加DLL、ネット接続は不要です。Windows 10 / 11 x64、Android 8以降、iOS / iPadOS 15以降に対応します。Androidの通常APKはARM64版です。IPAは未署名のため、端末へのインストール前にAppleの証明書・プロビジョニングプロファイル等で再署名が必要です。
 
 ![SeedLens](docs/SeedLens.png)
 
@@ -21,6 +21,7 @@ Minecraft Java / Bedrock用の、オフラインで動くバイオーム・構�
 - 地図のPNG保存、検索結果・表示範囲の構造物のCSV出力、座標・テレポートコマンドのコピー。
 - ライトテーマ、日本語 / English、埋め込みNoto Sans JP。構造物はMinecraftの実際のテクスチャ、操作アイコンとexeアイコンはLucideを使用。
 - 必要なタイルを最大4ワーカーで生成し、キャッシュします。ズームはマウス位置を保って滑らかに動き、生成中もキャッシュ済みの地図を表示します。構造物検索も別ワーカーで実行します。
+- モバイル版も同じ生成エンジン、UI、色、フォント、テクスチャを使用。縦横画面、タブレット、セーフエリア、画面キーボードに対応します。指1本で移動、2本で拡大縮小、長押しで座標メニューを開きます。PNG / CSVは端末のファイル選択画面から保存できます。
 
 ## 対応範囲
 
@@ -80,12 +81,15 @@ w64devkitを任意の場所へ展開し、そのbinディレクトリーをSEEDL
 
 アイコンを再生成するときだけ、scripts/generate_icons.pyとPillow / svg.pathを使用します。通常のビルド・実行では使用しません。
 
+モバイル版のビルドと署名については[mobile/README.md](mobile/README.md)を参照してください。アプリの実行は全プラットフォームでオフラインです。Android版はインターネット権限も要求しません。
+
 ## 構成
 
 - src/engine.*: 生成コンテキスト、タイルワーカー、検索、バイオーム・レイヤー情報。
 - src/backend_*: 両エディションのCエンジンを共通APIに接続。
 - src/ui.cpp: 日本語 / EnglishのネイティブUI。
 - src/main.cpp: Win32、DirectX、同一exeのCLI。
+- src/mobile_main.cpp / mobile/: SDL3、Android Activity、iOSのファイル出力とビルド設定。
 - src/export.cpp / persistence.cpp: Windows WICによるPNG、CSV、設定の保存。
 - third_party/: ピン留めした生成エンジン、Dear ImGui、元のテストとライセンス。
 - assets/lucide/: Lucideの元SVG。

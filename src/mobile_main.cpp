@@ -38,6 +38,8 @@ struct MobileHost {
         SDL_GetWindowSize(window,&width,&height);
         SDL_GetRenderOutputSize(renderer,&out_w,&out_h);
         if(!SDL_GetWindowSafeArea(window,&safe)||safe.w<=0||safe.h<=0)safe={0,0,width,height};
+        int keyboard=mobile_keyboard_height();
+        if(keyboard>0)safe.h=std::max(1,std::min(safe.h,height-keyboard-safe.y));
         pixel_ratio=width>0?float(out_w)/width:1;
         ui_scale=std::max(0.75f,SDL_GetWindowDisplayScale(window)/std::max(pixel_ratio,0.1f));
         if(target&&(target_w!=int(safe.w*pixel_ratio)||target_h!=int(safe.h*pixel_ratio))){
@@ -70,12 +72,6 @@ struct MobileHost {
         auto& io=ImGui::GetIO();float size=mobile?16.0f:15.0f;
         auto regular=embedded_resource(401),strong=embedded_resource(402);
         ImFont* body=io.Fonts->AddFontFromMemoryCompressedTTF(regular.data(),int(regular.size()),size);
-#if defined(__ANDROID__)
-        if(std::filesystem::exists("/system/fonts/NotoSansCJK-Regular.ttc")){
-            ImFontConfig fallback;fallback.MergeMode=true;
-            io.Fonts->AddFontFromFileTTF("/system/fonts/NotoSansCJK-Regular.ttc",size,&fallback);
-        }
-#endif
         io.Fonts->AddFontFromMemoryCompressedTTF(strong.data(),int(strong.size()),size);
         io.FontDefault=body;
     }

@@ -386,6 +386,7 @@ struct App::Impl {
         st.PopupRounding = 9 * u;
         st.ScrollbarRounding = 8 * u;
         st.ScrollbarSize = 8 * u;
+        st.TouchExtraPadding = platform.touch?ImVec2{4*u,4*u}:ImVec2{0,0};
         st.GrabRounding = 5 * u;
         st.WindowBorderSize = 1;
         st.FrameBorderSize = 1;
@@ -594,7 +595,7 @@ struct App::Impl {
                     hit = &m;
                 }
                 auto cell =
-                    std::make_pair(int((p.x - map_pos.x) / (29 * u)), int((p.y - map_pos.y) / (29 * u)));
+                    std::make_pair(int((p.x - map_pos.x) / ((platform.touch?42:29) * u)), int((p.y - map_pos.y) / ((platform.touch?42:29) * u)));
                 auto found = occupied.find(cell);
                 if (found != occupied.end()) {
                     found->second.second++;
@@ -756,9 +757,9 @@ struct App::Impl {
             ImGui::OpenPopup("Find locations##findmodal");
             find_open = false;
         }
-        ImGui::SetNextWindowSize(modal_size(680,620), ImGuiCond_Appearing);
+        prepare_modal(680,620);
         bool open = true;
-        if (!ImGui::BeginPopupModal("Find locations##findmodal", &open, ImGuiWindowFlags_NoSavedSettings))
+        if (!ImGui::BeginPopupModal("Find locations##findmodal", &open, modal_flags()))
             return;
         ImGui::TextUnformatted(t("場所を探す", "Find locations"));
         ImGui::SameLine();
@@ -923,7 +924,7 @@ struct App::Impl {
         if (ImGui::Button(t("閉じる", "Close"), {95 * u, 30 * u}))
             ImGui::CloseCurrentPopup();
         ImGui::SameLine();
-        if (selected && ImGui::Button(t("選択地点を地図で開く", "Open selected location"), {230 * u, 30 * u}))
+        if (!compact&&selected && ImGui::Button(t("選択地点を地図で開く", "Open selected location"), {230 * u, 30 * u}))
             ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
@@ -932,9 +933,9 @@ struct App::Impl {
             ImGui::OpenPopup("Add bookmark##add");
             add_open = false;
         }
-        ImGui::SetNextWindowSize(modal_size(430,190), ImGuiCond_Appearing);
+        prepare_modal(430,190);
         if (ImGui::BeginPopupModal("Add bookmark##add", nullptr,
-                                   ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings)) {
+                                   ImGuiWindowFlags_NoResize | modal_flags())) {
             ImGui::Text("X %d   Z %d", bookmark_target.x, bookmark_target.z);
             ImGui::SetNextItemWidth(-1);
             bool add = ImGui::InputText("##bookmarkname", bookmark_name, sizeof(bookmark_name),
@@ -955,9 +956,9 @@ struct App::Impl {
             ImGui::OpenPopup("Bookmarks##bookmarksmodal");
             bookmarks_open = false;
         }
-        ImGui::SetNextWindowSize(modal_size(660,520), ImGuiCond_Appearing);
+        prepare_modal(660,520);
         bool open = true;
-        if (!ImGui::BeginPopupModal("Bookmarks##bookmarksmodal", &open, ImGuiWindowFlags_NoSavedSettings))
+        if (!ImGui::BeginPopupModal("Bookmarks##bookmarksmodal", &open, modal_flags()))
             return;
         ImGui::TextUnformatted(t("ブックマーク", "Bookmarks"));
         ImGui::SameLine();
@@ -998,11 +999,11 @@ struct App::Impl {
             save_session(settings, s);
         }
         if (s.bookmarks.empty())
-            ImGui::TextDisabled("%s", t("地図上を右クリックして保存できます。",
-                                        "Right-click on the map to save a location."));
+            ImGui::TextDisabled("%s", platform.touch?t("地図を長押しして保存できます。","Long-press the map to save a location."):
+                t("地図上を右クリックして保存できます。","Right-click on the map to save a location."));
         ImGui::EndChild();
         if (action_button("addcenter", "plus", t("現在の中心を追加", "Bookmark map center"),
-                          {230 * u, 32 * u})) {
+                          {std::min(230*u,ImGui::GetContentRegionAvail().x-104*u),32*u})) {
             SLMarker m{};
             m.kind = -2;
             m.x = int(s.x);
@@ -1020,15 +1021,20 @@ struct App::Impl {
             ImGui::OpenPopup("Help##about");
             help_open = false;
         }
-        ImGui::SetNextWindowSize(modal_size(720,640), ImGuiCond_Appearing);
+        prepare_modal(720,640);
         bool open = true;
-        if (!ImGui::BeginPopupModal("Help##about", &open, ImGuiWindowFlags_NoSavedSettings))
+        if (!ImGui::BeginPopupModal("Help##about", &open, modal_flags()))
             return;
         ImGui::TextUnformatted(t("使い方・対応範囲", "Help & coverage"));
         ImGui::Separator();
         if (ImGui::BeginTabBar("help_tabs")) {
             if (ImGui::BeginTabItem(t("使い方", "Guide"))) {
+                ImGui::BeginChild("guide_body",{0,std::max(40*u,ImGui::GetContentRegionAvail().y-52*u)});
                 ImGui::Spacing();
+                if(platform.touch)ImGui::TextWrapped("%s",t(
+                    "シード・エディション・バージョンを選び、矢印ボタンで適用します。指1本で地図を移動、2本で拡大縮小。地図を長押しすると座標のコピーやブックマーク保存ができます。",
+                    "Select edition, version and seed, then tap the arrow. Pan with one finger and pinch to zoom. Long-press the map to copy coordinates or save a bookmark."));
+                else
                 ImGui::TextWrapped(
                     "%s", t("シード・エディション・バージョンを選び、矢印ボタンかEnterで適用します。ドラッグ"
                             "で移動、ホイールでズームします。地図を右クリックすると座標のコピーやブックマーク"
@@ -1056,15 +1062,19 @@ struct App::Impl {
                                        "Export PNG\nCtrl+G   Go to X / Z\nHome     Origin\n+ / -    Zoom\nG  "
                                        "      Chunk grid\nF1       Help\nEscape   Close / clear selection");
                 ImGui::Spacing();
-                ImGui::TextWrapped(
-                    "%s",
+                if(platform.touch)ImGui::TextWrapped("%s",t(
+                    "設定とブックマークはアプリ内に保存します。PNG・CSVの出力先は端末のファイル選択画面で指定します。全ての地図生成と検索はオフラインで動作します。",
+                    "Settings and bookmarks are saved in the app. Choose a destination in the system file picker for PNG and CSV exports. Map generation and searches work offline."));
+                else ImGui::TextWrapped("%s",
                     t("設定とブックマークはLocalAppDataのSeedLensフォルダーに保存します。--"
                       "portableで起動するとexeの横に保存します。配布物はexeだけです。",
                       "Settings and bookmarks are saved under LocalAppData/SeedLens. Start with --portable "
                       "to store them beside the executable. Only the EXE is required for distribution."));
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(t("対応範囲・精度", "Coverage"))) {
+                ImGui::BeginChild("coverage_body",{0,std::max(40*u,ImGui::GetContentRegionAvail().y-52*u)});
                 ImGui::Spacing();
                 ImGui::TextWrapped(
                     "%s",
@@ -1112,11 +1122,12 @@ struct App::Impl {
                                            supported ? "+" : "-", t(k.ja, k.en));
                     }
                 ImGui::EndChild();
+                ImGui::EndChild();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(t("ライセンス", "Licenses"))) {
                 ImGui::Spacing();
-                ImGui::BeginChild("license_text", {0, 470 * u});
+                ImGui::BeginChild("license_text", {0, std::max(40*u,ImGui::GetContentRegionAvail().y-52*u)});
                 if (!license_text.empty()) {
                     ImGui::PushTextWrapPos();
                     ImGui::TextUnformatted(license_text.c_str());

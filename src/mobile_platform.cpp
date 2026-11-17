@@ -3,6 +3,7 @@
 #include <mutex>
 #include <utility>
 #include <memory>
+#include <atomic>
 #if defined(SDL_PLATFORM_ANDROID)
 #include <jni.h>
 #endif
@@ -10,6 +11,11 @@
 namespace seedlens {
 static std::mutex notice_mutex;
 static std::string pending_notice;
+static std::atomic<int> keyboard_height{0};
+int mobile_keyboard_height(){return keyboard_height.load();}
+void mobile_set_keyboard_height(int value){
+    if(keyboard_height.exchange(value)!=value){SDL_Event event{};event.type=SDL_EVENT_USER;SDL_PushEvent(&event);}
+}
 void mobile_set_notice(std::string notice){std::lock_guard lock(notice_mutex);pending_notice=std::move(notice);}
 void mobile_notifications(std::string& value){std::lock_guard lock(notice_mutex);value=std::exchange(pending_notice,{});}
 #if defined(SDL_PLATFORM_ANDROID)
@@ -29,6 +35,9 @@ void mobile_export_file(const std::filesystem::path& path,const char* mime){
 }
 extern "C" JNIEXPORT void JNICALL Java_com_seedlens_app_SeedLensActivity_nativeExportResult(JNIEnv* env,jclass,jstring text){
     auto* value=env->GetStringUTFChars(text,nullptr);mobile_set_notice(value?value:"");if(value)env->ReleaseStringUTFChars(text,value);
+}
+extern "C" JNIEXPORT void JNICALL Java_com_seedlens_app_SeedLensActivity_nativeKeyboardHeight(JNIEnv*,jclass,jint height){
+    mobile_set_keyboard_height(height);
 }
 #elif !defined(SDL_PLATFORM_IOS)
 void mobile_initialize(SDL_Window*){}

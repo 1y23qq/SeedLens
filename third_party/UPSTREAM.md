@@ -1,10 +1,12 @@
 # Vendored source
 
-All required generation and UI source is vendored. Building or running does not fetch dependencies.
+All required generation and UI source is vendored. Windows builds and all application runtimes do not fetch dependencies. Mobile builds fetch the pinned SDL platform library.
 
 - Java: [xpple/cubiomes](https://github.com/xpple/cubiomes), commit 8c37ab26f2b47740839eb0045b34efc5141eb065, MIT.
 - Bedrock: [FragrantResult186/cubiomes-bedrock](https://github.com/FragrantResult186/cubiomes-bedrock), commit 294c72ab0392dd818a91d293dbd5774d4874d64b, MIT.
-- Dear ImGui: [ocornut/imgui](https://github.com/ocornut/imgui), commit 77fe4588e6af934b4167b91312174ca3fbb0d71a, version 1.93.1 WIP, MIT. Only Win32 / DX11 backends are built.
+- Dear ImGui: [ocornut/imgui](https://github.com/ocornut/imgui), commit 77fe4588e6af934b4167b91312174ca3fbb0d71a, version 1.93.1 WIP, MIT. Windows uses Win32 / DX11; mobile uses SDL3 / SDLRenderer3.
+- SDL: [libsdl-org/SDL](https://github.com/libsdl-org/SDL/releases/tag/release-3.4.20), 3.4.20, zlib license. Android uses the official AAR; iOS builds the static library from source. Archives are checksum pinned in scripts/setup_mobile.py and mobile/CMakeLists.txt. License: mobile/SDL-LICENSE.txt.
+- stb: [nothings/stb](https://github.com/nothings/stb), commit 9600522de53973336fa033a289858a4354cbb04c, MIT/public domain. Mobile PNG decoding and encoding use stb_image.h / stb_image_write.h.
 - Lucide: [lucide-icons/lucide](https://github.com/lucide-icons/lucide), commit f8feea7a02ea461c9f2a4b4d851512aae6ec933f, ISC and the retained Feather MIT notice. Original SVGs are in assets/lucide; generated geometry is in src/lucide_icons.h. The building-2, waves, and circle-help names use the current building, waves-horizontal, and circle-question-mark geometry.
 
 ## Local changes

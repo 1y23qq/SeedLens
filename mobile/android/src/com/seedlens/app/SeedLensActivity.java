@@ -3,7 +3,10 @@ package com.seedlens.app;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
+import android.graphics.Rect;
 import android.view.View;
+import android.view.WindowInsets;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
@@ -13,6 +16,7 @@ public final class SeedLensActivity extends SDLActivity {
     private File pendingExport;
     private static final int EXPORT_DOCUMENT=501;
     public static native void nativeExportResult(String message);
+    public static native void nativeKeyboardHeight(int height);
 
     @Override protected String[] getLibraries(){return new String[]{"SDL3","main"};}
     @Override protected String[] getArguments(){
@@ -24,6 +28,19 @@ public final class SeedLensActivity extends SDLActivity {
         super.onCreate(state);
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        View decor=getWindow().getDecorView();
+        decor.getViewTreeObserver().addOnGlobalLayoutListener(()->{
+            int height=0;
+            if(Build.VERSION.SDK_INT>=30){
+                WindowInsets insets=decor.getRootWindowInsets();
+                if(insets!=null)height=insets.getInsets(WindowInsets.Type.ime()).bottom;
+            }else{
+                Rect visible=new Rect();decor.getWindowVisibleDisplayFrame(visible);
+                int covered=decor.getRootView().getHeight()-visible.bottom;
+                if(covered>decor.getRootView().getHeight()/5)height=covered;
+            }
+            nativeKeyboardHeight(height);
+        });
     }
     public void exportFile(String path,String mime){
         runOnUiThread(()->{
