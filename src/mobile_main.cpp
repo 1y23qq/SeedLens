@@ -204,11 +204,13 @@ SDL_AppResult SDL_AppIterate(void* state){
     auto& io=ImGui::GetIO();io.DisplaySize={float(h.safe.w),float(h.safe.h)};io.DisplayFramebufferScale={h.pixel_ratio,h.pixel_ratio};
     ImGui::GetStyle().FontScaleDpi=h.ui_scale;
     ImGui::NewFrame();h.app->frame(h.ui_scale);ImGui::Render();
-    SDL_SetRenderTarget(h.renderer,h.target);SDL_SetRenderDrawColor(h.renderer,245,247,250,255);SDL_RenderClear(h.renderer);
+    SDL_SetRenderTarget(h.renderer,h.target);SDL_SetRenderScale(h.renderer,h.pixel_ratio,h.pixel_ratio);
+    SDL_SetRenderDrawColor(h.renderer,245,247,250,255);SDL_RenderClear(h.renderer);
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),h.renderer);
     if(auto file=h.app->take_export())h.capture(*file);
     std::string notice;mobile_notifications(notice);if(!notice.empty())h.app->notification(notice);
-    SDL_SetRenderTarget(h.renderer,nullptr);SDL_SetRenderDrawColor(h.renderer,255,255,255,255);SDL_RenderClear(h.renderer);
+    SDL_SetRenderTarget(h.renderer,nullptr);SDL_SetRenderScale(h.renderer,1,1);
+    SDL_SetRenderDrawColor(h.renderer,255,255,255,255);SDL_RenderClear(h.renderer);
     SDL_FRect destination{h.safe.x*h.pixel_ratio,h.safe.y*h.pixel_ratio,h.safe.w*h.pixel_ratio,h.safe.h*h.pixel_ratio};
     SDL_RenderTexture(h.renderer,h.target,nullptr,&destination);SDL_RenderPresent(h.renderer);
     h.next_frame=now+(h.app->busy()||!h.fingers.empty()?16:180);
