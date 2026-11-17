@@ -2,7 +2,7 @@
 
 The Android and iOS applications compile the same C++ generation engines, ImGui interface, biome palette, Minecraft marker atlas, Noto Sans JP fonts and Lucide controls as Windows. SDL3 supplies the native window, renderer, text input and clipboard. The app does not use a WebView or download map data.
 
-Phone layouts use two compact toolbars and a floating feature panel. Larger tablets use the desktop layout. Search results support a single tap, the map supports one-finger panning, two-finger zooming and a long-press coordinate menu. Native document pickers save PNG and CSV exports. App-private storage retains settings and bookmarks.
+Phone layouts use two compact toolbars and a floating feature panel. Larger tablets use the desktop layout. Search results support a single tap, the map supports one-finger panning, two-finger zooming and a long-press coordinate menu. Android saves PNG/CSV through its document picker. iOS saves copies in Files > SeedLens > Exports and opens the native share sheet for additional destinations. Existing exports receive numbered filenames. App-private storage retains settings and bookmarks.
 
 ## Android
 
@@ -33,6 +33,6 @@ Requires iOS / iPadOS 15+, macOS, Xcode, CMake and Python 3. An unsigned ARM64 d
 
 The IPA contains a real ARM64 iPhone/iPad app bundle. It is **unsigned** and cannot be installed directly until it is signed with a valid Apple signing identity and a provisioning profile for the intended installation method. No Apple account or signing material is included. For an Xcode-signed build, set the target's signing team and enable code signing locally.
 
-For the simulator, use iphonesimulator as CMAKE_OSX_SYSROOT and the host architecture as CMAKE_OSX_ARCHITECTURES. Launching with --self-test runs the same native core assertions as Windows and writes self-test.json under the application preference directory. The Mobile GitHub Actions workflow builds both a device IPA and simulator app, runs this check, and captures iPhone/iPad screenshots in all dimensions. The --export-smoke diagnostic flag captures a clean native map and opens the system document picker after generation completes.
+For the simulator, use iphonesimulator as CMAKE_OSX_SYSROOT and the host architecture as CMAKE_OSX_ARCHITECTURES. Launching with --self-test runs the same native core assertions as Windows and writes self-test.json under the application preference directory. The Mobile GitHub Actions workflow builds both a device IPA and simulator app, runs this check, and captures iPhone/iPad screenshots in all dimensions. The --export-smoke diagnostic flag captures a clean native map, writes a copy under Documents/Exports and opens the native share sheet after generation completes.
 
 The generation coverage and accuracy limitations are identical to the Windows application; see the main README.

@@ -3,16 +3,6 @@
 #include "../../src/mobile_platform.h"
 
 namespace seedlens {void mobile_set_notice(std::string);}
-@interface SeedLensExportDelegate:NSObject<UIDocumentPickerDelegate>
-@end
-@implementation SeedLensExportDelegate
--(void)documentPicker:(UIDocumentPickerViewController*)controller didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls{
-    (void)controller;(void)urls;seedlens::mobile_set_notice("保存しました / Saved");
-}
--(void)documentPickerWasCancelled:(UIDocumentPickerViewController*)controller{
-    (void)controller;seedlens::mobile_set_notice("保存をキャンセルしました / Cancelled");
-}
-@end
 namespace seedlens {
 static SDL_Window* app_window=nullptr;
 void mobile_initialize(SDL_Window* window){
@@ -32,12 +22,38 @@ void mobile_export_file(const std::filesystem::path& path,const char* mime){
     (void)mime;
     NSString* filename=[NSString stringWithUTF8String:path.string().c_str()];
     dispatch_async(dispatch_get_main_queue(),^{
+        NSFileManager* manager=[NSFileManager defaultManager];
+        NSURL* documents=[manager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+        NSURL* directory=[documents URLByAppendingPathComponent:@"Exports" isDirectory:YES];
+        NSURL* source=[NSURL fileURLWithPath:filename];
+        NSURL* destination=[directory URLByAppendingPathComponent:source.lastPathComponent];
+        NSError* error=nil;
+        if(![manager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error]){
+            mobile_set_notice("保存できませんでした / Could not save");return;
+        }
+        for(int i=2;[manager fileExistsAtPath:destination.path];++i){
+            NSString* name=[NSString stringWithFormat:@"%@ (%d).%@",source.lastPathComponent.stringByDeletingPathExtension,i,source.pathExtension];
+            destination=[directory URLByAppendingPathComponent:name];
+        }
+        if(![manager copyItemAtURL:source toURL:destination error:&error]){
+            mobile_set_notice("保存できませんでした / Could not save");return;
+        }
         UIWindow* window=(__bridge UIWindow*)SDL_GetPointerProperty(SDL_GetWindowProperties(app_window),SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER,nullptr);
         UIViewController* presenter=window.rootViewController;
         while(presenter.presentedViewController)presenter=presenter.presentedViewController;
-        UIDocumentPickerViewController* picker=[[UIDocumentPickerViewController alloc] initForExportingURLs:@[[NSURL fileURLWithPath:filename]] asCopy:YES];
-        static SeedLensExportDelegate* delegate=[[SeedLensExportDelegate alloc] init];
-        picker.delegate=delegate;[presenter presentViewController:picker animated:YES completion:nil];
+        UIActivityViewController* share=[[UIActivityViewController alloc] initWithActivityItems:@[destination] applicationActivities:nil];
+        if(UIDevice.currentDevice.userInterfaceIdiom==UIUserInterfaceIdiomPad)share.modalPresentationStyle=UIModalPresentationPopover;
+        share.excludedActivityTypes=@[UIActivityTypeSaveToCameraRoll];
+        share.completionWithItemsHandler=^(UIActivityType type,BOOL complete,NSArray* items,NSError* activity_error){
+            (void)type;(void)complete;(void)items;
+            mobile_set_notice(activity_error?"共有できませんでした / Could not share":"保存先: ファイル → SeedLens → Exports / Saved in Files → SeedLens → Exports");
+        };
+        if(share.popoverPresentationController){
+            share.popoverPresentationController.sourceView=presenter.view;
+            share.popoverPresentationController.sourceRect=CGRectMake(CGRectGetMidX(presenter.view.bounds),CGRectGetMidY(presenter.view.bounds),1,1);
+            share.popoverPresentationController.permittedArrowDirections=0;
+        }
+        [presenter presentViewController:share animated:YES completion:nil];
     });
 }
 }

@@ -17,7 +17,7 @@ concurrency:
 jobs:
   ios-device:
     if: github.event_name != 'workflow_dispatch' || inputs.target != 'simulator'
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -70,11 +70,12 @@ jobs:
           done
           xcrun simctl terminate "$DEVICE" com.seedlens.app
           xcrun simctl launch "$DEVICE" com.seedlens.app --export-smoke
-          sleep 10
+          sleep 30
           xcrun simctl io "$DEVICE" screenshot dist/ios-export-picker.png
-          MAP=$(find "$DATA" -name SeedLens-test.png -print -quit)
-          test -n "$MAP"
+          MAP="$DATA/Documents/Exports/SeedLens-test.png"
+          test -f "$MAP"
           cp "$MAP" dist/ios-exported-map.png
+          xcrun simctl spawn "$DEVICE" log show --last 2m --style compact --predicate 'process == "SeedLens"' > dist/ios-export-log.txt
           cp "$REPORT" dist/ios-core-report.json
           xcrun simctl shutdown "$DEVICE"
           TABLET=$(xcrun simctl list devices available -j | python3 -c 'import json,sys;d=json.load(sys.stdin);print(next(v["udid"] for a in d["devices"].values() for v in a if v["name"].startswith("iPad")))')
@@ -84,6 +85,10 @@ jobs:
           xcrun simctl launch "$TABLET" com.seedlens.app
           sleep 10
           xcrun simctl io "$TABLET" screenshot dist/ios-tablet.png
+          xcrun simctl terminate "$TABLET" com.seedlens.app
+          xcrun simctl launch "$TABLET" com.seedlens.app --export-smoke
+          sleep 30
+          xcrun simctl io "$TABLET" screenshot dist/ios-tablet-share.png
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -91,3 +96,4 @@ jobs:
           path: |
             dist/*.png
             dist/*-report.json
+            dist/ios-export-log.txt
